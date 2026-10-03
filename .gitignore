@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.venv/
+user_data/
+*.log
+credentials.properties
+sync.json
+collection-cache.json

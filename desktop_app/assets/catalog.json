@@ -1,0 +1,143 @@
+{
+  "_meta": {
+    "source": "Old School RuneScape Wiki",
+    "source_url": "https://oldschool.runescape.wiki/",
+    "note": "Curated external game-media filenames. Jagex-copyrighted media remains Jagex property and is cached locally only for display in this companion app."
+  },
+  "skill:Attack": {
+    "wiki_filename": "Attack icon.png",
+    "type": "skill"
+  },
+  "skill:Strength": {
+    "wiki_filename": "Strength icon.png",
+    "type": "skill"
+  },
+  "skill:Defence": {
+    "wiki_filename": "Defence icon.png",
+    "type": "skill"
+  },
+  "skill:Hitpoints": {
+    "wiki_filename": "Hitpoints icon.png",
+    "type": "skill"
+  },
+  "skill:Ranged": {
+    "wiki_filename": "Ranged icon.png",
+    "type": "skill"
+  },
+  "skill:Prayer": {
+    "wiki_filename": "Prayer icon.png",
+    "type": "skill"
+  },
+  "skill:Magic": {
+    "wiki_filename": "Magic icon.png",
+    "type": "skill"
+  },
+  "skill:Cooking": {
+    "wiki_filename": "Cooking icon.png",
+    "type": "skill"
+  },
+  "skill:Woodcutting": {
+    "wiki_filename": "Woodcutting icon.png",
+    "type": "skill"
+  },
+  "skill:Fletching": {
+    "wiki_filename": "Fletching icon.png",
+    "type": "skill"
+  },
+  "skill:Fishing": {
+    "wiki_filename": "Fishing icon.png",
+    "type": "skill"
+  },
+  "skill:Firemaking": {
+    "wiki_filename": "Firemaking icon.png",
+    "type": "skill"
+  },
+  "skill:Crafting": {
+    "wiki_filename": "Crafting icon.png",
+    "type": "skill"
+  },
+  "skill:Smithing": {
+    "wiki_filename": "Smithing icon.png",
+    "type": "skill"
+  },
+  "skill:Mining": {
+    "wiki_filename": "Mining icon.png",
+    "type": "skill"
+  },
+  "skill:Herblore": {
+    "wiki_filename": "Herblore icon.png",
+    "type": "skill"
+  },
+  "skill:Agility": {
+    "wiki_filename": "Agility icon.png",
+    "type": "skill"
+  },
+  "skill:Thieving": {
+    "wiki_filename": "Thieving icon.png",
+    "type": "skill"
+  },
+  "skill:Slayer": {
+    "wiki_filename": "Slayer icon.png",
+    "type": "skill"
+  },
+  "skill:Farming": {
+    "wiki_filename": "Farming icon.png",
+    "type": "skill"
+  },
+  "skill:Runecraft": {
+    "wiki_filename": "Runecraft icon.png",
+    "type": "skill"
+  },
+  "skill:Hunter": {
+    "wiki_filename": "Hunter icon.png",
+    "type": "skill"
+  },
+  "skill:Construction": {
+    "wiki_filename": "Construction icon.png",
+    "type": "skill"
+  },
+  "skill:Sailing": {
+    "wiki_filename": "Sailing icon.png",
+    "type": "skill"
+  },
+  "boss:Vorkath": {
+    "wiki_filename": "Vorkath icon.png",
+    "type": "boss"
+  },
+  "goal:collection": {
+    "wiki_filename": "Collection log icon.png",
+    "type": "interface"
+  },
+  "goal:money": {
+    "wiki_filename": "Coins 10000.png",
+    "type": "item"
+  },
+  "goal:clues": {
+    "wiki_filename": "Clue scroll.png",
+    "type": "item"
+  },
+  "overview:total_level": {
+    "wiki_filename": "Skills icon.png",
+    "type": "interface"
+  },
+  "overview:combat_level": {
+    "wiki_filename": "Attack style tab.png",
+    "type": "interface"
+  },
+  "overview:total_xp": {
+    "wiki_filename": "XP drops icon.png",
+    "type": "interface"
+  },
+  "overview:collections": {
+    "wiki_filename": "Collection log icon.png",
+    "type": "interface"
+  },
+  "overview:account_type": {
+    "wiki_filename": "Account Management.png",
+    "type": "interface"
+  },
+  "overview:snapshots": {
+    "wiki_filename": "Account Management - View History icon.png",
+    "type": "interface"
+  }
+}
