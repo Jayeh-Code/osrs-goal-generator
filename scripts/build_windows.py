@@ -8,6 +8,7 @@ root = Path(__file__).resolve().parent.parent
 app = root / 'desktop_app'
 subprocess.run([
     sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--windowed', '--onedir',
+    '--icon', str(app/'assets/ui/app-icon.ico'),
     '--name', 'OSRS Goal Generator', '--paths', str(app/'src'),
     '--add-data', str(app/'assets') + ';assets',
     '--copy-metadata', 'PySide6', '--copy-metadata', 'PySide6_Essentials',

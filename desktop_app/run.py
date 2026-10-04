@@ -16,9 +16,14 @@ def main() -> int:
         print("Install dependencies with: python -m pip install -r requirements.txt")
         return 1
 
+    if sys.platform == "win32":
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("JayehCode.OSRSGoalGenerator")
     app = QApplication(sys.argv)
     app.setApplicationName("OSRS Goal Generator")
     from osrs_goal_generator.config import DATA_DIR, STATE_FILE, ASSETS_DIR, VERSION
+    from PySide6.QtGui import QIcon
+    app.setWindowIcon(QIcon(str(ASSETS_DIR / "ui" / "app-icon.ico")))
     from osrs_goal_generator.services.save_migration import import_save, read_save
     lock = QLockFile(str(DATA_DIR / "app.lock"))
     lock.setStaleLockTime(0)

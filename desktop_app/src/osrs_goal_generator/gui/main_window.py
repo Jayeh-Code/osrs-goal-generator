@@ -121,6 +121,8 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(f"{APP_NAME} - {VERSION}")
+        from ..config import ASSETS_DIR
+        self.setWindowIcon(QIcon(str(ASSETS_DIR / "ui" / "app-icon.ico")))
         self.resize(1440, 900)
         self.setMinimumSize(1000, 680)
         self.setStyleSheet(APP_STYLESHEET)
@@ -306,6 +308,12 @@ class MainWindow(QMainWindow):
             button = QPushButton(display)
             button.setObjectName("NavButton")
             icon_path = ASSETS_DIR / "cache" / nav_assets[index]
+            if index == 0:
+                icon_path = ASSETS_DIR / "ui" / "app-icon.ico"
+            elif index == 1:
+                icon_path = ASSETS_DIR / "bosses" / "general_graardor.png"
+            elif index == 3:
+                icon_path = ASSETS_DIR / "cache" / "Achievement Diaries icon.png"
             button.setIcon(QIcon(str(icon_path)))
             button.setIconSize(QSize(24, 24))
             button.setToolTip(f"{display} (Alt+{index + 1})")

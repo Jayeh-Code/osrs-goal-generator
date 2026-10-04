@@ -4,7 +4,7 @@ A personal-beta Python/PySide6 desktop command center for Old School RuneScape g
 
 ## Windows download and setup
 
-Download **osrs-goal-generator-windows-x64-beta1.zip** from the [Beta 1 release](https://github.com/Jayeh-Code/osrs-goal-generator/releases/tag/v4.0.0-beta.1), extract the whole ZIP, and open **OSRS Goal Generator.exe**. Keep the `_internal` folder beside the executable. No Python installation is needed. This beta executable is unsigned.
+Download **osrs-goal-generator-windows-x64-beta2.zip** from the [Beta 2 release](https://github.com/Jayeh-Code/osrs-goal-generator/releases/tag/v4.0.0-beta.2), extract the whole ZIP, and open **OSRS Goal Generator.exe**. Keep the `_internal` folder beside the executable. No Python installation is needed. This beta executable is unsigned.
 
 Close the older app first. On first launch, choose **Yes** to import and select `desktop_app/user_data/state.json` from the old source download. The old save stays intact. Future downloads reuse `%LOCALAPPDATA%\OSRSGoalGenerator\user_data`, so replacing the app folder does not remove your progress. The imported original and previous readable save are backed up there. See [setup and recovery instructions](packaging/windows/START%20HERE.txt).
 

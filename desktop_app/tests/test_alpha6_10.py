@@ -12,7 +12,7 @@ class Alpha610OverviewIconTests(unittest.TestCase):
         catalog = json.loads((ROOT / "assets" / "catalog.json").read_text(encoding="utf-8"))
         expected = {
             "overview:total_level": "Skills icon.png",
-            "overview:combat_level": "Attack style tab.png",
+            "overview:combat_level": "Combat icon.png",
             "overview:total_xp": "XP drops icon.png",
             "overview:collections": "Collection log icon.png",
             "overview:account_type": "Account Management.png",
