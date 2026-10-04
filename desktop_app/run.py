@@ -41,7 +41,7 @@ def main() -> int:
         if STATE_FILE.exists():
             read_save(STATE_FILE)
     except (OSError, ValueError) as exc:
-        QMessageBox.critical(None, "Save could not be loaded", f"Your save has not been replaced.\n\n{exc}\n\nSave folder: {DATA_DIR}")
+        QMessageBox.critical(None, "Save could not be loaded", f"Your save has not been replaced.\n\n{exc}\n\nSave folder: {DATA_DIR}\n\nRecovery: keep a copy of state.json first. In this folder, copy state.backup.json to state.json, then reopen the app. If needed, imported-original.json is the original imported save. Backups may contain older progress; keep the damaged file for recovery.")
         return 1
     from osrs_goal_generator.gui.main_window import MainWindow
     window = MainWindow()

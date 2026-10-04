@@ -15,7 +15,7 @@ SOURCE_ROOT = PROJECT_ROOT / "src" / "osrs_goal_generator"
 
 class Alpha63Tests(unittest.TestCase):
     def test_version_is_alpha63(self):
-        self.assertTrue(VERSION.startswith(("4.0.0-alpha.6", "4.0.0-alpha.7", "4.0.0-alpha.8", "4.0.0-alpha.9")))
+        self.assertTrue(VERSION.startswith(("4.0.0-alpha.6", "4.0.0-alpha.7", "4.0.0-alpha.8", "4.0.0-alpha.9", "4.0.0-beta.")))
 
     def test_every_skill_uses_canonical_osrs_icon_filename(self):
         raw = json.loads(ASSET_CATALOG_FILE.read_text(encoding="utf-8"))

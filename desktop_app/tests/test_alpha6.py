@@ -10,7 +10,7 @@ from osrs_goal_generator.services.wiki_assets import WikiAssetService
 
 class Alpha6Tests(unittest.TestCase):
     def test_version_remains_alpha6_family(self):
-        self.assertTrue(VERSION.startswith(("4.0.0-alpha.6", "4.0.0-alpha.7", "4.0.0-alpha.8", "4.0.0-alpha.9")))
+        self.assertTrue(VERSION.startswith(("4.0.0-alpha.6", "4.0.0-alpha.7", "4.0.0-alpha.8", "4.0.0-alpha.9", "4.0.0-beta.")))
 
     def test_boss_assets_can_resolve_without_curated_catalog_entry(self):
         with tempfile.TemporaryDirectory() as temp:

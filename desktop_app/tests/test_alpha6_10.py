@@ -37,7 +37,7 @@ class Alpha610OverviewIconTests(unittest.TestCase):
 
     def test_version_is_alpha_6_10(self) -> None:
         source = (ROOT / "src" / "osrs_goal_generator" / "config.py").read_text(encoding="utf-8")
-        self.assertIn('VERSION = "4.0.0-alpha.', source)
+        self.assertIn('VERSION = "4.0.0-', source)
 
 
 if __name__ == "__main__":

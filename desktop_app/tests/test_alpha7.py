@@ -16,7 +16,7 @@ THEME = ROOT / "src" / "osrs_goal_generator" / "gui" / "theme.py"
 
 class Alpha7Tests(unittest.TestCase):
     def test_version_is_alpha7(self):
-        self.assertTrue(VERSION.startswith(("4.0.0-alpha.7", "4.0.0-alpha.8", "4.0.0-alpha.9")))
+        self.assertTrue(VERSION.startswith(("4.0.0-alpha.7", "4.0.0-alpha.8", "4.0.0-alpha.9", "4.0.0-beta.")))
 
     def test_collection_targets_round_trip_and_clamp(self):
         with tempfile.TemporaryDirectory() as folder:

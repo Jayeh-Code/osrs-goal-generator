@@ -61,7 +61,7 @@ def sample_sync(player_name: str = "Test Player") -> dict:
 
 class Alpha8Tests(unittest.TestCase):
     def test_version_is_alpha8(self):
-        self.assertTrue(VERSION.startswith(("4.0.0-alpha.8", "4.0.0-alpha.9")))
+        self.assertTrue(VERSION.startswith(("4.0.0-alpha.8", "4.0.0-alpha.9", "4.0.0-beta.")))
 
     def test_bridge_path_matches_runelite_plugin_data_directory(self):
         normalized = str(RUNELITE_SYNC_FILE).replace("\\", "/")

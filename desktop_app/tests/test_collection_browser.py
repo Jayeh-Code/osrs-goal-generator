@@ -54,6 +54,160 @@ class CollectionBrowserTests(unittest.TestCase):
     def write(self):
         self.path.write_text(json.dumps(self.raw),encoding="utf-8")
 
+    def test_diary_loading_does_not_block_ui_and_failure_can_retry(self):
+        import threading
+        import time
+        from PySide6.QtCore import QTimer
+        started, release = threading.Event(), threading.Event()
+        w = self.window
+        def delayed(**kwargs):
+            started.set()
+            release.wait(3)
+            raise OSError('simulated offline')
+        with patch.object(w.diary_service, 'load', side_effect=delayed) as load:
+            try:
+                w._load_diary_definitions()
+                self.assertTrue(started.wait(2))
+                w._load_diary_definitions()
+                tick = []
+                QTimer.singleShot(0, lambda: tick.append(True))
+                self.app.processEvents()
+                self.assertTrue(tick)
+                self.assertEqual(load.call_count, 1)
+            finally:
+                release.set()
+                deadline = time.monotonic() + 3
+                while w.diary_loading and time.monotonic() < deadline:
+                    self.app.processEvents()
+                    time.sleep(.005)
+        self.assertFalse(w.diary_loading)
+        self.assertIn('simulated offline', w.diary_error)
+        with patch.object(w.diary_service, 'load', return_value=[]):
+            w._load_diary_definitions(force_refresh=True)
+            deadline = time.monotonic() + 3
+            while w.diary_loading and time.monotonic() < deadline:
+                self.app.processEvents()
+                time.sleep(.005)
+        self.assertFalse(w.diary_loading)
+        self.assertIsNone(w.diary_error)
+
+    def test_cached_account_label_distinguishes_live_memory_from_saved_snapshot(self):
+        w = self.window
+        self.raw['connected'] = False
+        self.write()
+        w._poll_runelite_sync()
+        w._render_home()
+        self.assertIn('Cached skills', w.account_summary.text())
+        w.last_live_update = None
+        w._render_home()
+        self.assertIn('Cached HiScores snapshot', w.account_summary.text())
+        self.assertIn('Saved goal progress may be newer', w.account_summary.text())
+
+    def test_failed_completion_save_can_retry_without_duplicate_history(self):
+        w = self.window
+        profile = w.session.profile
+        goal = w.progress_service.collection_goal(profile, w.runelite_snapshot, 'Alpha')
+        goal.status = 'accepted'
+        self.store.set_active_goal(w.state, profile, goal)
+        self.store.save(w.state)
+        for item in self.raw['collection_log']['pages']['Alpha']['items']:
+            item['obtained'] = True
+        self.write()
+        with patch.object(self.store, 'save', side_effect=PermissionError('locked')), patch('osrs_goal_generator.gui.main_window.QMessageBox.information') as notice:
+            w._poll_runelite_sync()
+            self.assertTrue(w.save_pending)
+            self.assertFalse(w.save_notice.isHidden())
+            notice.assert_not_called()
+            self.assertIsNotNone(self.store.active_goal(self.store.load(), profile))
+        self.assertTrue(w._save_state())
+        restored = self.store.load()
+        self.assertIsNone(self.store.active_goal(restored, profile))
+        history = self.store.goal_history(restored, profile)
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0].status, 'completed')
+        self.assertTrue(w.save_notice.isHidden())
+        w._poll_runelite_sync()
+        self.assertEqual(len(self.store.goal_history(w.state, profile)), 1)
+
+    def test_failed_acceptance_and_preferences_survive_retry(self):
+        w = self.window
+        profile = w.session.profile
+        w.session.current_goal = w.progress_service.collection_goal(profile, w.runelite_snapshot, 'Alpha')
+        with patch.object(self.store, 'save', side_effect=OSError('disk full')), patch('osrs_goal_generator.gui.main_window.QMessageBox.information') as notice:
+            w._accept_goal()
+            w._toggle_boss_favorite('Brutus')
+            self.assertTrue(w.save_pending)
+            notice.assert_not_called()
+        self.assertTrue(w._save_state())
+        restored = self.store.load()
+        self.assertIsNotNone(self.store.active_goal(restored, profile))
+        self.assertIn('Brutus', self.store.favorite_bosses(restored, profile))
+
+    def test_failed_partial_progress_save_blocks_close_and_retries(self):
+        from osrs_goal_generator.models import Goal
+        from PySide6.QtGui import QCloseEvent
+        w = self.window
+        profile = w.session.profile
+        goal = Goal('partial', 'now', 'skilling', 'skill_xp', 'Agility', 'Train', 'XP', [],
+                    start_value=800000, target_value=1000000, status='accepted')
+        self.store.set_active_goal(w.state, profile, goal)
+        self.store.save(w.state)
+        with patch.object(self.store, 'save', side_effect=OSError('disk full')):
+            w._poll_runelite_sync()
+            event = QCloseEvent()
+            w.closeEvent(event)
+            self.assertFalse(event.isAccepted())
+            self.assertFalse(w.closing)
+        self.assertTrue(w._save_state())
+        restored = self.store.active_goal(self.store.load(), profile)
+        self.assertEqual(restored.current_value, 900000)
+        self.assertEqual(restored.progress_percent, 50)
+
+    def test_refresh_rejects_non_logged_in_snapshot(self):
+        self.raw['game_state'] = 'LOGIN_SCREEN'
+        self.write()
+        profile = make_profile()
+        profile.skills['Agility'].xp = 123
+        self.window._profile_loaded(profile)
+        self.assertEqual(self.window.session.profile.skills['Agility'].xp, 123)
+
+    def test_delayed_lookup_is_single_and_close_waits_safely(self):
+        import threading
+        import time
+        from PySide6.QtGui import QCloseEvent
+        started, release = threading.Event(), threading.Event()
+        calls = []
+        def delayed(_client, rsn, account_type):
+            calls.append(rsn)
+            started.set()
+            release.wait(3)
+            return make_profile()
+        w = self.window
+        original = w.session.profile
+        w.rsn_input.setText('Test Player')
+        with patch('osrs_goal_generator.gui.main_window.HiscoresClient.fetch', delayed):
+            try:
+                w._load_account()
+                self.assertTrue(started.wait(2))
+                w._load_account()
+                self.assertEqual(calls, ['Test Player'])
+                self.assertFalse(w.rsn_input.isEnabled())
+                event = QCloseEvent()
+                w.closeEvent(event)
+                self.assertFalse(event.isAccepted())
+                self.assertTrue(w.closing)
+            finally:
+                release.set()
+                deadline = time.monotonic() + 3
+                while w.lookup_pending and time.monotonic() < deadline:
+                    self.app.processEvents()
+                    time.sleep(.005)
+            self.assertFalse(w.lookup_pending)
+            self.assertIs(w.session.profile, original)
+            event = QCloseEvent()
+            w.closeEvent(event)
+            self.assertTrue(event.isAccepted())
+
     def test_home_compact_layout_has_no_horizontal_scroll(self):
         from PySide6.QtWidgets import QBoxLayout
         self.window._switch_page(0)

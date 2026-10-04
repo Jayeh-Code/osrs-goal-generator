@@ -18,7 +18,7 @@ class Alpha61Tests(unittest.TestCase):
         return WikiAssetService(cache_dir=root / "cache", catalog_path=catalog)
 
     def test_version_is_alpha6_or_later_patch(self):
-        self.assertTrue(VERSION.startswith(("4.0.0-alpha.6", "4.0.0-alpha.7", "4.0.0-alpha.8", "4.0.0-alpha.9")))
+        self.assertTrue(VERSION.startswith(("4.0.0-alpha.6", "4.0.0-alpha.7", "4.0.0-alpha.8", "4.0.0-alpha.9", "4.0.0-beta.")))
 
     def test_bosses_are_backed_by_curated_manifest(self):
         from osrs_goal_generator.services.wiki_assets import RUNELITE_BOSS_ATLAS_ORDER

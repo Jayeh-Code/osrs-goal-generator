@@ -1,10 +1,10 @@
 # OSRS Goal Generator
 
-An alpha Python/PySide6 desktop command center for Old School RuneScape goals, skill progress, boss activities, paths, diaries, and observed Collection Log pages. One active goal at a time; no gameplay automation.
+A personal-beta Python/PySide6 desktop command center for Old School RuneScape goals, skill progress, boss activities, paths, diaries, and observed Collection Log pages. One active goal at a time; no gameplay automation.
 
 ## Windows download and setup
 
-Download **osrs-goal-generator-windows-x64-alpha9.3.zip** from the [Alpha 9.3 release](https://github.com/Jayeh-Code/osrs-goal-generator/releases/tag/v4.0.0-alpha.9.3), extract the whole ZIP, and open **OSRS Goal Generator.exe**. Keep the `_internal` folder beside the executable. No Python installation is needed. This alpha executable is unsigned.
+Download **osrs-goal-generator-windows-x64-beta1.zip** from the [Beta 1 release](https://github.com/Jayeh-Code/osrs-goal-generator/releases/tag/v4.0.0-beta.1), extract the whole ZIP, and open **OSRS Goal Generator.exe**. Keep the `_internal` folder beside the executable. No Python installation is needed. This beta executable is unsigned.
 
 Close the older app first. On first launch, choose **Yes** to import and select `desktop_app/user_data/state.json` from the old source download. The old save stays intact. Future downloads reuse `%LOCALAPPDATA%\OSRSGoalGenerator\user_data`, so replacing the app folder does not remove your progress. The imported original and previous readable save are backed up there. See [setup and recovery instructions](packaging/windows/START%20HERE.txt).
 
@@ -24,7 +24,7 @@ The desktop remains the command center. RuneLite only observes supported game st
 
 ## Tests and status
 
-Run **Run Tests.cmd** after setup. The standalone desktop suite contains 155 tests; four legacy companion-source contract checks are skipped when the companion source is absent. The companion has its own Java regression suite. Offscreen GUI tests use temporary saves.
+Run **Run Tests.cmd** after setup. The standalone desktop suite contains 163 tests; four legacy companion-source contract checks are skipped when the companion source is absent. The companion has its own Java regression suite. Offscreen GUI tests use temporary saves.
 
 Validated on Windows: development companion launch, live skill XP, Collection Log page capture and restart persistence, skill goal completion, and observed collection-item goal completion. This is alpha software and is not an official Jagex or RuneLite product.
 
@@ -39,3 +39,5 @@ The top status and message stay visible on every page. They explain missing or u
 ## Reference-inspired desktop styling
 
 Alpha 9.3 adds decorative landscape panels, stone-style borders, icon navigation and warm headings. Active goals hide disabled generation controls; smaller windows stack Home cards. Enter loads an account, Ctrl+G generates, and Alt+1 through Alt+8 switch pages. The scenery is original generated artwork; see desktop_app/assets/ui/ARTWORK.md for its prompt and provenance.
+
+Personal beta readiness and known limits: [Beta 1 notes](docs/BETA_1.md).

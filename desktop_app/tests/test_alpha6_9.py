@@ -26,7 +26,7 @@ class Alpha69Tests(unittest.TestCase):
 
     def test_version_remains_in_alpha_6_series(self):
         source = CONFIG.read_text(encoding="utf-8")
-        self.assertIn('VERSION = "4.0.0-alpha.', source)
+        self.assertIn('VERSION = "4.0.0-', source)
 
 
 if __name__ == "__main__":

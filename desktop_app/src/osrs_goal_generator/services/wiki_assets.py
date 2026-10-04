@@ -103,8 +103,8 @@ class WikiAssetService:
     """Resolve display assets without making boss art a runtime dependency.
 
     Bosses are shipped as a fully curated local pack generated from the exact
-    RuneLite HiScores screenshot supplied by the user. Skills/items continue to
-    use exact curated OSRS Wiki filenames and may be cached on first use.
+    RuneLite HiScores screenshot supplied by the user. All 24 skill icons are
+    bundled from the OSRS Wiki. Other curated items may be cached on first use.
     """
 
     def __init__(

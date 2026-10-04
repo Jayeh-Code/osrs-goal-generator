@@ -12,6 +12,18 @@ from osrs_goal_generator.services.storage import StateStore
 
 
 class PackagingTests(unittest.TestCase):
+    def test_malformed_nested_save_is_rejected_without_replacing_original(self):
+        from osrs_goal_generator.services.save_migration import read_save
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder)/'state.json'
+            for entry in ({'preferences': []}, {'collection_targets': [{'current': 'broken'}]},
+                          {'active_goal': {'metadata': []}}, {'snapshots': [{'skills': []}]}):
+                path.write_text(json.dumps({'profiles': {'normal:test': entry}}))
+                before = path.read_bytes()
+                with self.assertRaises(ValueError):
+                    read_save(path)
+                self.assertEqual(path.read_bytes(), before)
+
     def test_import_preserves_every_field_and_original_bytes(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

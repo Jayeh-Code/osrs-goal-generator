@@ -73,6 +73,21 @@ class FetchWorker(QObject):
             self.failed.emit(f"Unexpected lookup error: {exc}")
 
 
+class DiaryWorker(QObject):
+    finished = Signal(object, str)
+
+    def __init__(self, service, refresh):
+        super().__init__()
+        self.service = service
+        self.refresh = refresh
+
+    def run(self):
+        try:
+            self.finished.emit(self.service.load(force_refresh=self.refresh), "")
+        except Exception as exc:
+            self.finished.emit([], f"Could not load diary requirements: {exc}. Use Refresh Requirements to retry.")
+
+
 class AssetBatchWorker(QObject):
     finished = Signal(object)
 
@@ -84,6 +99,8 @@ class AssetBatchWorker(QObject):
         service = WikiAssetService()
         result: dict[str, str] = {}
         for key in self.keys:
+            if QThread.currentThread().isInterruptionRequested():
+                break
             try:
                 asset = service.fetch_key(key)
                 result[key] = str(asset.local_path)
@@ -110,6 +127,9 @@ class MainWindow(QMainWindow):
 
         self.store = StateStore()
         self.state = self.store.load()
+        self.save_pending = False
+        self.lookup_pending = False
+        self.closing = False
         self.session = AppSession()
         self.goal_engine = GoalEngine()
         self.progress_service = GoalProgressService()
@@ -118,6 +138,9 @@ class MainWindow(QMainWindow):
         self.diary_service = DiaryDataService()
         self.diary_definitions: list[DiaryDefinition] = []
         self.diary_error: str | None = None
+        self.diary_loading = False
+        self.diary_attempted = False
+        self.last_live_update = None
         self.asset_service = WikiAssetService()
         self.runelite_sync_service = RuneLiteSyncService()
         self.runelite_snapshot: RuneLiteSyncSnapshot | None = None
@@ -163,6 +186,15 @@ class MainWindow(QMainWindow):
         self.bridge_status_note.setWordWrap(True)
         self.bridge_status_note.setContentsMargins(26, 8, 26, 8)
         content_layout.addWidget(self.bridge_status_note)
+        self.save_notice = QLabel()
+        self.save_notice.setWordWrap(True)
+        self.save_notice.setStyleSheet("color: #ffd080; padding: 8px 26px;")
+        self.save_notice.hide()
+        content_layout.addWidget(self.save_notice)
+        self.retry_save_button = QPushButton("Retry saving")
+        self.retry_save_button.clicked.connect(self._save_state)
+        self.retry_save_button.hide()
+        content_layout.addWidget(self.retry_save_button)
         content_layout.addWidget(self.pages, 1)
 
         root = QWidget()
@@ -196,6 +228,49 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     # Shell / navigation
     # ------------------------------------------------------------------
+
+    def _save_state(self) -> bool:
+        try:
+            self.store.save(self.state)
+        except (OSError, ValueError) as exc:
+            self.save_pending = True
+            self.save_notice.setText(
+                "Changes are NOT SAVED. Keep this app open and retry saving. "
+                f"Save location: {self.store.path} | {exc}")
+            self.save_notice.show()
+            self.retry_save_button.show()
+            return False
+        self.save_pending = False
+        self.save_notice.hide()
+        self.retry_save_button.hide()
+        return True
+
+    def closeEvent(self, event) -> None:
+        if self.save_pending and not self._save_state():
+            event.ignore()
+            return
+        self.closing = True
+        self.runelite_timer.stop()
+        running = [thread for thread in self.findChildren(QThread) if thread.isRunning()]
+        if running:
+            for thread in running:
+                thread.requestInterruption()
+            self.statusBar().showMessage("Finishing the current request before closing...")
+            event.ignore()
+            QTimer.singleShot(100, self.close)
+            return
+        event.accept()
+
+    def _lookup_finished(self) -> None:
+        self.lookup_pending = False
+        self.fetch_thread = None
+        self._worker = None
+        self.load_button.setEnabled(True)
+        self.top_refresh_button.setEnabled(True)
+        self.rsn_input.setEnabled(True)
+        self.account_type.setEnabled(True)
+        self.load_button.setText("Load / Refresh Account")
+        self.top_refresh_button.setText("Refresh")
 
     def _build_sidebar(self) -> QWidget:
         frame = ScenicFrame(0.78)
@@ -1276,6 +1351,8 @@ class MainWindow(QMainWindow):
                     and snapshot.game_state == "LOGGED_IN")
 
     def _poll_runelite_sync(self) -> None:
+        if self.closing:
+            return
         snapshot = self._refresh_runelite_snapshot()
         fingerprint = self.runelite_sync_service.fingerprint(snapshot)
         previous_fingerprint = self.runelite_fingerprint
@@ -1292,6 +1369,7 @@ class MainWindow(QMainWindow):
             # come from HiScores in Alpha 8.
             merged = self.runelite_sync_service.merge_profile(profile, snapshot)
             self.session.profile = merged
+            self.last_live_update = snapshot.updated_at
 
             active = self.store.active_goal(self.state, merged)
             completed_goal = None
@@ -1304,7 +1382,7 @@ class MainWindow(QMainWindow):
                     if result.completed:
                         completed_goal = active
                         self.store.archive_active_goal(self.state, merged, "completed")
-                    self.store.save(self.state)
+                    self._save_state()
 
             if changed:
                 self._render_all()
@@ -1312,7 +1390,7 @@ class MainWindow(QMainWindow):
                 self._render_topbar()
                 if self.pages.currentIndex() == 0:
                     self._render_goal_panel()
-            if completed_goal:
+            if completed_goal and not self.save_pending:
                 QMessageBox.information(
                     self, APP_NAME,
                     f"Goal complete from live RuneLite data!\n\n{completed_goal.title}\n{completed_goal.objective}",
@@ -1352,11 +1430,16 @@ class MainWindow(QMainWindow):
             self._render_all()
 
     def _load_account(self) -> None:
+        if self.lookup_pending or self.closing:
+            return
         rsn = self.rsn_input.text().strip()
         if not rsn:
             QMessageBox.warning(self, APP_NAME, "Enter a RuneScape name first.")
             return
         account_type = self.account_type.currentData()
+        self.lookup_pending = True
+        self.rsn_input.setEnabled(False)
+        self.account_type.setEnabled(False)
         self.load_button.setEnabled(False)
         self.load_button.setText("Loading...")
         self.top_refresh_button.setEnabled(False)
@@ -1369,16 +1452,15 @@ class MainWindow(QMainWindow):
         worker.failed.connect(self._profile_failed)
         worker.finished.connect(self.fetch_thread.quit)
         worker.failed.connect(self.fetch_thread.quit)
+        self.fetch_thread.finished.connect(self._lookup_finished)
         self.fetch_thread.finished.connect(worker.deleteLater)
         self.fetch_thread.finished.connect(self.fetch_thread.deleteLater)
         self.fetch_thread.start()
         self._worker = worker
 
     def _profile_loaded(self, profile: PlayerProfile) -> None:
-        self.load_button.setEnabled(True)
-        self.load_button.setText("Load / Refresh Account")
-        self.top_refresh_button.setEnabled(True)
-        self.top_refresh_button.setText("Refresh")
+        if self.closing:
+            return
 
         previous = self.store.latest_profile(
             self.state,
@@ -1387,6 +1469,7 @@ class MainWindow(QMainWindow):
         )
         self.session.previous_profile = previous
         self.session.profile = profile
+        self.last_live_update = None
         self.session.current_goal = None
         self.store.save_profile(self.state, profile)
 
@@ -1394,9 +1477,10 @@ class MainWindow(QMainWindow):
         # companion is connected to this same account. Activities remain from
         # public HiScores for Alpha 8.
         self._refresh_runelite_snapshot()
-        if self.runelite_snapshot and self.runelite_snapshot.is_fresh() and self.runelite_snapshot.matches(profile):
+        if self.progress_service.is_live(self.runelite_snapshot, profile):
             self.session.profile = self.runelite_sync_service.merge_profile(profile, self.runelite_snapshot)
             profile = self.session.profile
+            self.last_live_update = self.runelite_snapshot.updated_at
 
         completed_goal: Goal | None = None
         active = self.store.active_goal(self.state, profile)
@@ -1407,10 +1491,10 @@ class MainWindow(QMainWindow):
                 completed_goal = active
                 self.store.archive_active_goal(self.state, profile, "completed")
 
-        self.store.save(self.state)
+        self._save_state()
         self._render_all()
 
-        if completed_goal:
+        if completed_goal and not self.save_pending:
             QMessageBox.information(
                 self,
                 APP_NAME,
@@ -1418,10 +1502,8 @@ class MainWindow(QMainWindow):
             )
 
     def _profile_failed(self, message: str) -> None:
-        self.load_button.setEnabled(True)
-        self.load_button.setText("Load / Refresh Account")
-        self.top_refresh_button.setEnabled(True)
-        self.top_refresh_button.setText("Refresh")
+        if self.closing:
+            return
         self._render_topbar()
         QMessageBox.critical(self, APP_NAME, message)
 
@@ -1497,7 +1579,7 @@ class MainWindow(QMainWindow):
                 self.store.deactivate_path(self.state, profile, path.path_id)
                 changed = True
         if changed:
-            self.store.save(self.state)
+            self._save_state()
 
     def _render_overview_icons(self) -> list[str]:
         missing: list[str] = []
@@ -1558,7 +1640,14 @@ class MainWindow(QMainWindow):
             age_text = f"{int(age)}s ago" if age is not None else "now"
             self.account_summary.setText(f"RuneLite live - updated {age_text} | HiScores baseline: {profile.fetched_at}")
         else:
-            self.account_summary.setText(f"HiScores last synced: {profile.fetched_at}")
+            if self.last_live_update:
+                self.account_summary.setText(
+                    f"Cached skills - last live update: {self.last_live_update}. "
+                    f"HiScores baseline: {profile.fetched_at}. Reconnect for live progress.")
+            else:
+                self.account_summary.setText(
+                    f"Cached HiScores snapshot: {profile.fetched_at}. "
+                    "Refresh or reconnect for current stats. Saved goal progress may be newer.")
 
         asset_keys: list[str] = list(overview_asset_keys)
         skills = lowest_skills(profile, 5)
@@ -2118,13 +2207,45 @@ class MainWindow(QMainWindow):
         self.paths_cards_layout.addStretch(1)
 
     def _load_diary_definitions(self, *, force_refresh: bool = False) -> bool:
-        try:
-            self.diary_definitions = self.diary_service.load(force_refresh=force_refresh)
-            self.diary_error = None
-        except DiaryDataError as exc:
-            self.diary_error = str(exc)
-            self.diary_definitions = []
-            return False
+        if self.closing or self.diary_loading:
+            return bool(self.diary_definitions)
+        if self.diary_attempted and not force_refresh:
+            return bool(self.diary_definitions)
+        self.diary_attempted = True
+        self.diary_loading = True
+        self.diary_error = None
+        self.diary_refresh_button.setEnabled(False)
+        self.diary_refresh_button.setText("Loading...")
+        thread = QThread(self)
+        worker = DiaryWorker(self.diary_service, force_refresh)
+        self.diary_thread = thread
+        self.diary_worker = worker
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.finished.connect(self._diaries_loaded)
+        worker.finished.connect(thread.quit)
+        thread.finished.connect(worker.deleteLater)
+        thread.finished.connect(self._diary_finished)
+        thread.finished.connect(thread.deleteLater)
+        thread.start()
+        return bool(self.diary_definitions)
+
+    def _diary_finished(self):
+        self.diary_loading = False
+        self.diary_thread = None
+        self.diary_worker = None
+        if not self.closing:
+            self.diary_refresh_button.setEnabled(True)
+            self.diary_refresh_button.setText("Refresh Requirements")
+            self._render_all()
+
+    def _diaries_loaded(self, definitions, error):
+        if self.closing:
+            return
+        self.diary_error = error or None
+        if error:
+            return
+        self.diary_definitions = definitions
 
         self.progression_service.set_external_paths([
             self.diary_service.as_path(diary) for diary in self.diary_definitions
@@ -2158,6 +2279,9 @@ class MainWindow(QMainWindow):
 
         if not self.diary_definitions:
             self._load_diary_definitions()
+        if self.diary_loading and not self.diary_definitions:
+            self.diary_note.setText("Loading diary requirements in the background. You can keep using the app.")
+            return
         if self.diary_error:
             self.diary_note.setText(self.diary_error)
             err = QLabel(self.diary_error)
@@ -2783,7 +2907,7 @@ class MainWindow(QMainWindow):
         goal = self.session.current_goal
         if goal:
             self.store.record_reroll(self.state, profile, goal.target_name)
-            self.store.save(self.state)
+            self._save_state()
         self._generate_goal()
 
     def _clear_reroll_memory(self) -> None:
@@ -2808,7 +2932,7 @@ class MainWindow(QMainWindow):
             return
 
         self.store.clear_rerolls(self.state, profile)
-        self.store.save(self.state)
+        self._save_state()
         self._render_home()
         self._render_settings()
         QMessageBox.information(self, APP_NAME, "Reroll memory cleared. The recommendation pool is fresh again.")
@@ -2838,7 +2962,7 @@ class MainWindow(QMainWindow):
         if active is not None:
             self.store.archive_active_goal(self.state, profile, "blocked")
         self.session.current_goal = None
-        self.store.save(self.state)
+        self._save_state()
         self._render_all()
 
     def _accept_goal(self) -> None:
@@ -2871,9 +2995,10 @@ class MainWindow(QMainWindow):
         self.session.current_goal = None
         self.store.record_recent_target(self.state, profile, goal.target_name)
         self.store.clear_rerolls(self.state, profile)
-        self.store.save(self.state)
+        self._save_state()
         self._render_all()
-        QMessageBox.information(self, APP_NAME, "Task locked in and now actively tracked.")
+        if not self.save_pending:
+            QMessageBox.information(self, APP_NAME, "Task locked in and now actively tracked.")
 
     def _mark_active_complete(self) -> None:
         profile = self.session.profile
@@ -2902,7 +3027,7 @@ class MainWindow(QMainWindow):
         self.store.update_active_goal(self.state, profile, active)
         self.store.archive_active_goal(self.state, profile, "completed")
         self.session.current_goal = None
-        self.store.save(self.state)
+        self._save_state()
         self._render_all()
 
     def _cancel_active_goal(self) -> None:
@@ -2922,7 +3047,7 @@ class MainWindow(QMainWindow):
             return
         self.store.archive_active_goal(self.state, profile, "cancelled")
         self.session.current_goal = None
-        self.store.save(self.state)
+        self._save_state()
         self._render_all()
 
     # Backward-compatible internal alias for Alpha 2 references.
@@ -2934,7 +3059,7 @@ class MainWindow(QMainWindow):
         if profile is None:
             return
         self.store.toggle_favorite_boss(self.state, profile, boss_name)
-        self.store.save(self.state)
+        self._save_state()
         self._render_bosses()
 
     def _show_path_details(self, path_id: str) -> None:
@@ -2972,7 +3097,7 @@ class MainWindow(QMainWindow):
             return
         updated = dialog.path_definition()
         self.store.save_custom_path(self.state, profile, updated)
-        self.store.save(self.state)
+        self._save_state()
         self._sync_progression_sources(load_diaries=False)
         self._prune_completed_active_paths()
         self._render_paths()
@@ -2989,7 +3114,7 @@ class MainWindow(QMainWindow):
         if answer != QMessageBox.StandardButton.Yes:
             return
         self.store.delete_custom_path(self.state, profile, path_id)
-        self.store.save(self.state)
+        self._save_state()
         self._sync_progression_sources(load_diaries=False)
         self._render_paths()
         self._render_home()
@@ -3004,7 +3129,7 @@ class MainWindow(QMainWindow):
             return
         path = dialog.path_definition()
         self.store.save_custom_path(self.state, profile, path)
-        self.store.save(self.state)
+        self._save_state()
         self._sync_progression_sources(load_diaries=False)
         self._render_paths()
 
@@ -3013,17 +3138,8 @@ class MainWindow(QMainWindow):
         if profile is None:
             QMessageBox.information(self, APP_NAME, "Load an account first.")
             return
-        self.diary_refresh_button.setEnabled(False)
-        self.diary_refresh_button.setText("Refreshing...")
-        ok = self._load_diary_definitions(force_refresh=True)
-        self.diary_refresh_button.setEnabled(True)
-        self.diary_refresh_button.setText("Refresh Requirements")
-        self._sync_progression_sources(load_diaries=False)
+        self._load_diary_definitions(force_refresh=True)
         self._render_diaries()
-        if ok:
-            QMessageBox.information(self, APP_NAME, "Diary requirement data refreshed.")
-        else:
-            QMessageBox.warning(self, APP_NAME, self.diary_error or "Diary refresh failed.")
 
     def _find_diary(self, diary_id: str) -> DiaryDefinition | None:
         if not self.diary_definitions:
@@ -3039,7 +3155,7 @@ class MainWindow(QMainWindow):
             self.store.untrack_diary(self.state, profile, diary_id)
         else:
             self.store.track_diary(self.state, profile, diary_id, "medium")
-        self.store.save(self.state)
+        self._save_state()
         self._sync_progression_sources(load_diaries=True)
         self._render_diaries()
         self._render_home()
@@ -3204,7 +3320,7 @@ class MainWindow(QMainWindow):
         if answer != QMessageBox.StandardButton.Yes:
             return
         self.store.mark_diary_complete(self.state, profile, diary_id)
-        self.store.save(self.state)
+        self._save_state()
         self._sync_progression_sources(load_diaries=True)
         self._render_diaries()
         self._render_home()
@@ -3219,7 +3335,7 @@ class MainWindow(QMainWindow):
         if not diary_id:
             return
         self.store.restore_diary(self.state, profile, str(diary_id))
-        self.store.save(self.state)
+        self._save_state()
         self._render_settings()
         if self.diary_definitions:
             self._render_diaries()
@@ -3242,7 +3358,7 @@ class MainWindow(QMainWindow):
         if not dialog.exec():
             return
         self.store.save_collection_target(self.state, profile, dialog.target())
-        self.store.save(self.state)
+        self._save_state()
         self._render_collection()
 
     def _edit_collection_target(self, target_id: str) -> None:
@@ -3254,7 +3370,7 @@ class MainWindow(QMainWindow):
         if not dialog.exec():
             return
         self.store.save_collection_target(self.state, profile, dialog.target())
-        self.store.save(self.state)
+        self._save_state()
         self._render_collection()
 
     def _increment_collection_target(self, target_id: str) -> None:
@@ -3265,7 +3381,7 @@ class MainWindow(QMainWindow):
         if int(target["current"]) < int(target["total"]):
             target["current"] = int(target["current"]) + 1
             self.store.save_collection_target(self.state, profile, target)
-            self.store.save(self.state)
+            self._save_state()
         self._render_collection()
 
     def _delete_collection_target(self, target_id: str) -> None:
@@ -3277,7 +3393,7 @@ class MainWindow(QMainWindow):
         if answer != QMessageBox.StandardButton.Yes:
             return
         self.store.delete_collection_target(self.state, profile, target_id)
-        self.store.save(self.state)
+        self._save_state()
         self._render_collection()
 
     def _generate_collection_goal(self) -> None:
@@ -3414,7 +3530,7 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, APP_NAME, "Load an account first.")
             return
         self.store.activate_path(self.state, profile, path_id, "high")
-        self.store.save(self.state)
+        self._save_state()
         self._render_paths()
         self._render_home()
 
@@ -3423,7 +3539,7 @@ class MainWindow(QMainWindow):
         if profile is None:
             return
         self.store.deactivate_path(self.state, profile, path_id)
-        self.store.save(self.state)
+        self._save_state()
         self._render_paths()
         self._render_home()
 
@@ -3438,7 +3554,7 @@ class MainWindow(QMainWindow):
         if path_id not in active_ids:
             return
         self.store.update_path_priority(self.state, profile, path_id, priority)
-        self.store.save(self.state)
+        self._save_state()
         self._render_home()
 
     def _unblock_selected(self) -> None:
@@ -3453,7 +3569,7 @@ class MainWindow(QMainWindow):
         blocked = prefs.get("blocked_targets", [])
         if target in blocked:
             blocked.remove(target)
-            self.store.save(self.state)
+            self._save_state()
             self._render_settings()
 
     # ------------------------------------------------------------------
@@ -3510,6 +3626,8 @@ class MainWindow(QMainWindow):
         return None
 
     def _request_assets(self, keys: list[str]) -> None:
+        if self.closing:
+            return
         for key in keys:
             if key and key not in self.asset_attempted and self.asset_service.can_fetch(key):
                 self.pending_asset_keys.add(key)
@@ -3534,6 +3652,8 @@ class MainWindow(QMainWindow):
         self._asset_worker = worker
 
     def _assets_loaded(self, result: dict[str, str]) -> None:
+        if self.closing:
+            return
         for key, path in result.items():
             self.cached_assets[key] = Path(path)
         self._render_home()

@@ -3,7 +3,7 @@ import os
 import sys
 
 APP_NAME = "OSRS Goal Generator"
-VERSION = "4.0.0-alpha.9.3"
+VERSION = "4.0.0-beta.1"
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = Path(sys._MEIPASS) if getattr(sys, "frozen", False) else PACKAGE_DIR.parent.parent
