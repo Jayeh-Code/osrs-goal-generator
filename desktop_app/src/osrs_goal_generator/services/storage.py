@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -52,6 +53,20 @@ class StateStore:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         temp = self.path.with_suffix(".tmp")
         temp.write_text(json.dumps(state, indent=2), encoding="utf-8")
+        if self.path.exists():
+            # Preserve the last readable save before replacing it atomically.
+            try:
+                existing = json.loads(self.path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                temp.unlink(missing_ok=True)
+                raise ValueError("Existing save is unreadable; it has not been overwritten.")
+            if not isinstance(existing, dict):
+                temp.unlink(missing_ok=True)
+                raise ValueError("Existing save is invalid; it has not been overwritten.")
+            backup = self.path.with_suffix(".backup.json")
+            backup_temp = backup.with_suffix(".tmp")
+            shutil.copyfile(self.path, backup_temp)
+            backup_temp.replace(backup)
         temp.replace(self.path)
 
     def ensure_profile_entry(

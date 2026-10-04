@@ -6,3 +6,7 @@ user_data/
 credentials.properties
 sync.json
 collection-cache.json
+
+build/
+dist/
+*.spec

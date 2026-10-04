@@ -1,0 +1,21 @@
+This distribution includes Python 3.13.3, PySide6/Shiboken6/Qt 6.11.2 and
+the PyInstaller 6.22.0 bootloader. Original license texts are in licenses/
+and package metadata is retained under _internal/.
+
+Qt and PySide6 are used under LGPLv3. Their shared libraries remain separate
+in _internal and may be replaced with compatible modified versions. Reverse
+engineering for debugging modifications to these LGPL components is allowed.
+Build the application from its published Python source using
+scripts/build_windows.py; Python 3.13, PySide6 6.11.2, and PyInstaller 6.22.0
+were used for this release. No Qt or Python runtime source was modified.
+
+Corresponding upstream source:
+Python: https://github.com/python/cpython/tree/v3.13.3
+Qt: https://download.qt.io/official_releases/qt/6.11/6.11.2/single/
+PySide/Shiboken: https://code.qt.io/cgit/pyside/pyside-setup.git/tree/?h=v6.11.2
+PyInstaller: https://github.com/pyinstaller/pyinstaller/tree/v6.22.0
+App: https://github.com/Jayeh-Code/osrs-goal-generator
+
+RuneScape names and artwork remain Jagex property. Icon provenance is kept
+in _internal/assets/catalog.json and _internal/assets/bosses/manifest.json.
+No Jagex or RuneLite endorsement is claimed.

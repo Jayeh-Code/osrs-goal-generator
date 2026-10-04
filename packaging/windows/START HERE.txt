@@ -1,0 +1,44 @@
+OSRS Goal Generator Alpha 9.1 — Windows x64
+
+1. Extract the entire ZIP to a folder.
+2. Open OSRS Goal Generator.exe. Keep the _internal folder beside it.
+3. No Python installation is needed.
+
+Moving from the earlier Python version
+-------------------------------------
+Close the old desktop app first. On first launch, choose Yes to import an
+existing save, then select desktop_app/user_data/state.json inside your old
+app folder. The original file is copied, never moved or deleted. Import
+preserves settings, account snapshots, accepted goals, and goal history.
+If you cancel the file picker, the app exits so you can try again next time.
+If you already ran the updated source version, it imports automatically and
+the packaged app will reuse that save.
+
+Saves and future upgrades
+------------------------
+Your save is stored separately from this download:
+%LOCALAPPDATA%\OSRSGoalGenerator\user_data
+
+Paste that path into File Explorer to see your files. Future versions use
+the same location, so you can extract each new release into a new folder.
+Do not run the old Python version and this app together: the old version
+still uses its own save folder and cannot see new progress saved here.
+
+state.json: current save
+state.backup.json: previous readable save (updated when saving)
+imported-original.json: untouched copy of the original imported save
+
+For recovery, close the app, keep a copy of all three files, then copy a
+known-good backup to state.json. The app refuses to overwrite an unreadable
+save. Back up this folder regularly; the rolling backup is not full history.
+
+RuneLite
+--------
+The existing development companion continues to work. Plugin Hub review is
+pending. Use the same RuneScape name in both apps; open Collection Log pages
+in game to refresh exact item capture. No bridge schema changes were made.
+
+This alpha executable is unsigned; Windows may show an unknown-publisher
+notice. Downloads and source: https://github.com/Jayeh-Code/osrs-goal-generator
+
+Runtime notices and source links are in THIRD_PARTY_NOTICES.txt and licenses/.

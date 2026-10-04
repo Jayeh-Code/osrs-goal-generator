@@ -1,13 +1,17 @@
 from pathlib import Path
+import os
+import sys
 
 APP_NAME = "OSRS Goal Generator"
-VERSION = "4.0.0-alpha.9.0"
+VERSION = "4.0.0-alpha.9.1"
 
 PACKAGE_DIR = Path(__file__).resolve().parent
-PROJECT_DIR = PACKAGE_DIR.parent.parent
-DATA_DIR = PROJECT_DIR / "user_data"
+PROJECT_DIR = Path(sys._MEIPASS) if getattr(sys, "frozen", False) else PACKAGE_DIR.parent.parent
+DATA_DIR = Path(os.environ.get("OSRS_DATA_DIR") or (
+    Path(os.environ.get("LOCALAPPDATA", Path.home() / ".local" / "share")) / "OSRSGoalGenerator" / "user_data"
+))
 ASSETS_DIR = PROJECT_DIR / "assets"
-CACHE_DIR = ASSETS_DIR / "cache"
+CACHE_DIR = DATA_DIR / "asset-cache"
 ASSET_CATALOG_FILE = ASSETS_DIR / "catalog.json"
 STATE_FILE = DATA_DIR / "state.json"
 RUNELITE_SYNC_FILE = Path.home() / ".runelite" / "plugin-data" / "osrs-goal-generator-companion" / "sync.json"

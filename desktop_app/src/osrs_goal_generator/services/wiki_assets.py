@@ -178,7 +178,8 @@ class WikiAssetService:
         filename = self.filename_for(key)
         if filename:
             destination = self.cache_dir / self._safe_name(filename)
-            return destination if destination.exists() else None
+            bundled = ASSETS_DIR / "cache" / self._safe_name(filename)
+            return destination if destination.exists() else (bundled if bundled.exists() else None)
         return None
 
     def fetch_key(self, key: str) -> WikiAsset:
@@ -196,6 +197,9 @@ class WikiAssetService:
 
         filename = self.filename_for(key)
         if filename:
+            cached = self.cached_path(key)
+            if cached is not None:
+                return WikiAsset(key, filename, "cached", cached)
             return self.cache_file(key, filename)
         raise KeyError(f"No curated asset for {key}")
 

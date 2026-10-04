@@ -4,13 +4,11 @@ An alpha Python/PySide6 desktop command center for Old School RuneScape goals, s
 
 ## Windows download and setup
 
-1. Install Python 3.11 or newer from https://www.python.org/downloads/windows/ (include the Python launcher).
-2. Choose **Code > Download ZIP** on this repository, then extract the ZIP to a writable folder such as Documents.
-3. Double-click **Setup Desktop.cmd** once to install PySide6 into a local virtual environment. This step needs internet access.
-4. Double-click **Start Desktop.cmd** to open the app.
-5. Load your RuneScape name. Public HiScores works without the RuneLite companion.
+Download **osrs-goal-generator-windows-x64-alpha9.1.zip** from the [Alpha 9.1 release](https://github.com/Jayeh-Code/osrs-goal-generator/releases/tag/v4.0.0-alpha.9.1), extract the whole ZIP, and open **OSRS Goal Generator.exe**. Keep the `_internal` folder beside the executable. No Python installation is needed. This alpha executable is unsigned.
 
-Keep the extracted folder together. This is a source distribution, not a standalone EXE or installer.
+Close the older app first. On first launch, choose **Yes** to import and select `desktop_app/user_data/state.json` from the old source download. The old save stays intact. Future downloads reuse `%LOCALAPPDATA%\OSRSGoalGenerator\user_data`, so replacing the app folder does not remove your progress. The imported original and previous readable save are backed up there. See [setup and recovery instructions](packaging/windows/START%20HERE.txt).
+
+For source development, install Python 3.11+, download the source, run **Setup Desktop.cmd**, then **Start Desktop.cmd**. Build an executable with Python 3.13, PySide6 6.11.2, PyInstaller 6.22.0 and `python scripts/build_windows.py`.
 
 ## Live RuneLite bridge
 
@@ -20,13 +18,13 @@ Collection Log coverage grows as you open pages in game. Unopened pages are unkn
 
 ## Local data and privacy
 
-Goals, history, and settings are stored in desktop_app/user_data inside your extracted folder. Back up that folder before replacing a download. No personal save data is included in this repository. Account progress stays local, except requests to public Jagex HiScores; the app can also fetch game artwork from the OSRS Wiki. There is no project server, telemetry, password handling, or Jagex login service. Never upload your user_data, bridge files, or development credentials in an issue.
+Goals, history, and settings are stored in `%LOCALAPPDATA%\OSRSGoalGenerator\user_data`, independently of the application folder. Source startup copies its legacy save into this location only when no current save exists. Back up this folder regularly. No personal save data is included in this repository. Account progress stays local, except requests to public Jagex HiScores; the app can also fetch game artwork from the OSRS Wiki and public diary requirements from GitHub. There is no project server, telemetry, password handling, or Jagex login service. Never upload your user_data, bridge files, or development credentials in an issue.
 
 The desktop remains the command center. RuneLite only observes supported game state and writes the local [schema v1](docs/SYNC_SCHEMA_V1.md) bridge.
 
 ## Tests and status
 
-Run **Run Tests.cmd** after setup. The standalone desktop suite contains 136 tests; four legacy companion-source contract checks are skipped when the companion source is absent. The companion has its own Java regression suite. Offscreen GUI tests use temporary saves.
+Run **Run Tests.cmd** after setup. The standalone desktop suite contains 142 tests; four legacy companion-source contract checks are skipped when the companion source is absent. The companion has its own Java regression suite. Offscreen GUI tests use temporary saves.
 
 Validated on Windows: development companion launch, live skill XP, Collection Log page capture and restart persistence, skill goal completion, and observed collection-item goal completion. This is alpha software and is not an official Jagex or RuneLite product.
 
