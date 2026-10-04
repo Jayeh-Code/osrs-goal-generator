@@ -38,6 +38,7 @@ from ..engine.goal_engine import BOSS_MARKERS, GoalEngine
 from ..engine.scoring import ScoringContext
 from ..models import DiaryDefinition, Goal, GoalFilters, PathDefinition, PlayerProfile
 from ..services.analytics import AnalyticsService
+from ..services.bridge_status import bridge_status
 from ..services.collection_categories import CATEGORIES, collection_page_category
 from ..services.diaries import DiaryDataError, DiaryDataService
 from ..services.hiscores import HiscoresClient, HiscoresError
@@ -154,6 +155,11 @@ class MainWindow(QMainWindow):
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
         content_layout.addWidget(topbar)
+        self.bridge_status_note = QLabel()
+        self.bridge_status_note.setObjectName("Muted")
+        self.bridge_status_note.setWordWrap(True)
+        self.bridge_status_note.setContentsMargins(26, 8, 26, 8)
+        content_layout.addWidget(self.bridge_status_note)
         content_layout.addWidget(self.pages, 1)
 
         root = QWidget()
@@ -278,6 +284,9 @@ class MainWindow(QMainWindow):
         self.top_subtitle.setText(subtitle)
 
         profile = self.session.profile
+        active = self.store.active_goal(self.state, profile) if profile else None
+        status = bridge_status(self.runelite_snapshot, profile, active,
+                               file_exists=self.runelite_sync_service.path.exists())
         if profile is None:
             self.top_account_label.setText("No account loaded")
             self.top_status_label.setText("OFFLINE")
@@ -289,6 +298,11 @@ class MainWindow(QMainWindow):
             self.top_status_label.setText("RUNELITE LIVE" if live else "HISCORES")
             self.top_status_label.setObjectName("Pill" if live else "GoldPill")
             self.top_refresh_button.setEnabled(True)
+        self.top_status_label.setText(status.title)
+        self.top_status_label.setObjectName("Pill" if status.live else "GoldPill")
+        self.top_status_label.setToolTip(status.detail)
+        if hasattr(self, "bridge_status_note"):
+            self.bridge_status_note.setText(status.detail)
         self.top_status_label.style().unpolish(self.top_status_label)
         self.top_status_label.style().polish(self.top_status_label)
 
@@ -1217,7 +1231,8 @@ class MainWindow(QMainWindow):
     def _runelite_is_live_for_profile(self, profile: PlayerProfile | None = None) -> bool:
         profile = profile or self.session.profile
         snapshot = self.runelite_snapshot
-        return bool(snapshot and snapshot.is_fresh() and snapshot.matches(profile))
+        return bool(snapshot and snapshot.is_fresh() and snapshot.matches(profile)
+                    and snapshot.game_state == "LOGGED_IN")
 
     def _poll_runelite_sync(self) -> None:
         snapshot = self._refresh_runelite_snapshot()
@@ -1229,6 +1244,8 @@ class MainWindow(QMainWindow):
         live = bool(profile and self.progress_service.is_live(snapshot, profile))
         changed = fingerprint != previous_fingerprint or live != getattr(self, "runelite_was_live", False)
         self.runelite_was_live = live
+        if self.pages.currentIndex() == 7:
+            self._render_settings()
         if live:
             # Merge only live skill/XP values. Boss/activity values continue to
             # come from HiScores in Alpha 8.
@@ -2567,25 +2584,18 @@ class MainWindow(QMainWindow):
         profile = self.session.profile
         snapshot = self.runelite_snapshot
         if hasattr(self, "runelite_bridge_status"):
-            if snapshot and snapshot.is_fresh():
-                match_text = ""
-                if profile and not snapshot.matches(profile):
-                    match_text = f" (RuneLite account: {snapshot.player_name})"
-                self.runelite_bridge_status.setText(f"RuneLite companion: connected{match_text}")
-                self.runelite_bridge_status.setObjectName("Pill" if not match_text else "GoldPill")
-                self.runelite_bridge_detail.setText(
-                    f"Synced Collection Log pages: {snapshot.collection_page_count} | "
-                    f"Captured items: {snapshot.collection_obtained_count}/{snapshot.collection_item_count} | "
-                    f"Plugin: {snapshot.plugin_version}"
-                )
-            elif snapshot:
-                self.runelite_bridge_status.setText("RuneLite companion: sync file found, but not currently live")
-                self.runelite_bridge_status.setObjectName("GoldPill")
-                self.runelite_bridge_detail.setText(f"Last player: {snapshot.player_name or '-'} | Pages cached in file: {snapshot.collection_page_count}")
-            else:
-                self.runelite_bridge_status.setText("RuneLite companion: not detected")
-                self.runelite_bridge_status.setObjectName("GoldPill")
-                self.runelite_bridge_detail.setText("Synced Collection Log pages: 0")
+            active = self.store.active_goal(self.state, profile) if profile else None
+            status = bridge_status(snapshot, profile, active,
+                                   file_exists=self.runelite_sync_service.path.exists())
+            self.runelite_bridge_status.setText(status.title)
+            self.runelite_bridge_status.setObjectName("Pill" if status.live else "GoldPill")
+            detail = status.detail
+            if snapshot:
+                detail += (f"\nAccount: {snapshot.player_name or '-'} | "
+                           f"Cached pages: {snapshot.collection_page_count} | "
+                           f"Last bridge update: {snapshot.updated_at}")
+            self.runelite_bridge_detail.setWordWrap(True)
+            self.runelite_bridge_detail.setText(detail)
             self.runelite_bridge_status.style().unpolish(self.runelite_bridge_status)
             self.runelite_bridge_status.style().polish(self.runelite_bridge_status)
         if profile is None:

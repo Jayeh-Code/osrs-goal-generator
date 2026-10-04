@@ -54,6 +54,27 @@ class CollectionBrowserTests(unittest.TestCase):
     def write(self):
         self.path.write_text(json.dumps(self.raw),encoding="utf-8")
 
+    def test_status_banner_and_open_settings_follow_disconnect_and_reconnect(self):
+        self.window._switch_page(7)
+        self.assertEqual(self.window.runelite_bridge_status.text(), "RUNELITE LIVE")
+        self.raw["connected"] = False
+        self.write()
+        self.window._poll_runelite_sync()
+        self.assertEqual(self.window.top_status_label.text(), "RUNELITE DISCONNECTED")
+        self.assertEqual(self.window.runelite_bridge_status.text(), "RUNELITE DISCONNECTED")
+        self.assertIn("HiScores", self.window.bridge_status_note.text())
+        self.raw["connected"] = True
+        self.write()
+        self.window._poll_runelite_sync()
+        self.assertEqual(self.window.runelite_bridge_status.text(), "RUNELITE LIVE")
+
+    def test_status_banner_rejects_wrong_account(self):
+        self.raw["player"]["name"] = "Another account"
+        self.write()
+        self.window._poll_runelite_sync()
+        self.assertEqual(self.window.top_status_label.text(), "ACCOUNT MISMATCH")
+        self.assertIn("Another account", self.window.bridge_status_note.text())
+
     def cards(self):
         layout = self.window.collection_cards_layout
         return [layout.itemAt(i).widget() for i in range(layout.count())

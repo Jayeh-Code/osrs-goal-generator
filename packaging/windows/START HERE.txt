@@ -1,4 +1,4 @@
-OSRS Goal Generator Alpha 9.1 — Windows x64
+OSRS Goal Generator Alpha 9.2 — Windows x64
 
 1. Extract the entire ZIP to a folder.
 2. Open OSRS Goal Generator.exe. Keep the _internal folder beside it.
