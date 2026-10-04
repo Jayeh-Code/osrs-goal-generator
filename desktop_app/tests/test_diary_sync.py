@@ -15,6 +15,30 @@ def sample():
     return {'prototype_schema':1,'mapping_version':'ardougne-tasks-1','status':'observed_unverified','player_name':'Test Player','updated_at':datetime.now(timezone.utc).isoformat(),'tiers':tiers}
 
 class DiarySyncTests(unittest.TestCase):
+    def test_automatic_completion_ignores_rewards_and_rejects_mismatch(self):
+        raw = sample()
+        raw['tiers']['easy']['reward_raw'] = 0
+        self.assertEqual(diary_sync.completed_ids(raw, 'Test Player'),
+                         {'ardougne:easy', 'ardougne:medium', 'ardougne:hard'})
+        raw['tiers']['easy']['count_raw'] = 0
+        self.assertNotIn('ardougne:easy', diary_sync.completed_ids(raw, 'Test Player'))
+        self.assertEqual(diary_sync.completed_ids(raw, 'Other'), set())
+
+    def test_observed_completion_persists_separately_from_manual(self):
+        from osrs_goal_generator.services.storage import StateStore
+        from test_alpha2 import make_profile
+        with tempfile.TemporaryDirectory() as folder:
+            store = StateStore(Path(folder)/'state.json')
+            state = store.load(); profile = make_profile()
+            entry = store.ensure_profile_entry(state, profile.rsn, profile.account_type)
+            entry['diary_prototype_snapshot'] = sample()
+            store.mark_diary_complete(state, profile, 'karamja:elite')
+            store.save(state); state = store.load()
+            self.assertIn('ardougne:easy', store.completed_diaries(state, profile))
+            self.assertIn('karamja:elite', store.completed_diaries(state, profile))
+            self.assertEqual(store.ensure_profile_entry(state, profile.rsn, profile.account_type)['completed_diaries'], ['karamja:elite'])
+            self.assertNotIn('ardougne:elite', store.completed_diaries(state, profile))
+
     def test_all_regions_and_legacy_compatibility(self):
         raw=sample()
         mapping=json.loads((ASSETS_DIR/'diary-task-mapping.json').read_text())

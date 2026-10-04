@@ -2304,6 +2304,7 @@ class MainWindow(QMainWindow):
 
     def _poll_diary_checklist(self):
         profile = self.session.profile
+        before = self.store.completed_diaries(self.state, profile) if profile else set()
         self.diary_observed = None
         self.diary_observed_live = False
         if profile:
@@ -2320,6 +2321,10 @@ class MainWindow(QMainWindow):
                 self.diary_observed = diary_sync.validate(cached, profile.rsn)
         if self.pages.currentIndex() == 3:
             self._render_diary_checklist()
+        if profile and before != self.store.completed_diaries(self.state, profile):
+            self._render_diaries()
+            self._render_home()
+            self._render_settings()
 
     def _render_diary_checklist(self):
         if not hasattr(self, "diary_task_table"):
@@ -2347,7 +2352,7 @@ class MainWindow(QMainWindow):
         status = "LIVE" if live else "CACHED"
         count = str(tier['count']) if tier['consistent'] else "Unknown"
         self.diary_live_note.setText(f"{self.diary_live_region.currentText()} checklist (experimental) - {status} - {count}/{tier['total']} tasks. Observed: {data['observed_at']}. "
-                                    "Read-only; manual diary completion is unchanged.")
+                                    "All tasks complete automatically completes the tier; rewards are not required.")
         for index, task in enumerate(tier['tasks']):
             self.diary_task_table.insertRow(index)
             label = "Complete" if task['completed'] is True else "Remaining" if task['completed'] is False else "Unknown"
@@ -2422,7 +2427,7 @@ class MainWindow(QMainWindow):
 
         self.diary_note.setText(
             "Quest prerequisites are assumed complete. Measurable skill/boss blockers come from the cached diary "
-            "requirement dataset; completion stays manual because public HiScores do not expose diary state."
+            "requirement dataset. Observed complete task sets automatically complete a tier; manual completion remains available."
         )
 
         if not rows:
@@ -2886,7 +2891,7 @@ class MainWindow(QMainWindow):
 
         completed = sorted(self.store.completed_diaries(self.state, profile))
         if not completed:
-            self.completed_diary_list.addItem("No manually completed diaries.")
+            self.completed_diary_list.addItem("No completed diaries.")
         else:
             lookup = {diary.diary_id: diary for diary in self.diary_definitions}
             for diary_id in completed:
@@ -2896,6 +2901,8 @@ class MainWindow(QMainWindow):
                     if diary else diary_id.replace("_", " ").replace(":", " - ").title()
                 )
                 # QListWidget accepts addItem(str); store the diary id on the created item.
+                if diary_id in self.store.observed_completed_diaries(self.state, profile):
+                    label += " (RuneLite observed)"
                 # store the id in a parallel property via the item's UserRole.
                 self.completed_diary_list.addItem(label)
                 list_item = self.completed_diary_list.item(self.completed_diary_list.count() - 1)
@@ -3425,6 +3432,9 @@ class MainWindow(QMainWindow):
             return
         diary_id = item.data(Qt.ItemDataRole.UserRole)
         if not diary_id:
+            return
+        if str(diary_id) in self.store.observed_completed_diaries(self.state, profile):
+            QMessageBox.information(self, APP_NAME, "All tasks in this tier were observed complete by RuneLite. It remains complete automatically; rewards are not required.")
             return
         self.store.restore_diary(self.state, profile, str(diary_id))
         self._save_state()

@@ -68,7 +68,9 @@ class CollectionBrowserTests(unittest.TestCase):
             w._poll_diary_checklist();w._render_diary_checklist()
             self.assertIn('CACHED',w.diary_live_note.text())
             self.assertEqual(w.diary_task_table.rowCount(),8)
-            self.assertEqual(self.store.completed_diaries(w.state,w.session.profile),set())
+            self.assertEqual(self.store.completed_diaries(w.state,w.session.profile),
+                             {'ardougne:easy','ardougne:medium','ardougne:hard'})
+            self.assertEqual(self.store.ensure_profile_entry(w.state,w.session.profile.rsn,w.session.profile.account_type)['completed_diaries'], [])
             w.session.profile.rsn='Another account'
             w._poll_diary_checklist();w._render_diary_checklist()
             self.assertEqual(w.diary_task_table.rowCount(),0)

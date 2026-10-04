@@ -74,3 +74,19 @@ def load(rsn, path=PROTOTYPE_PATH):
         return None, False
     age = (datetime.now(timezone.utc)-datetime.fromisoformat(result['observed_at'].replace('Z','+00:00'))).total_seconds()
     return raw, -5 <= age <= 20
+
+
+def completed_ids(raw, rsn):
+    """Task completion from validated observations; rewards are irrelevant."""
+    data = validate(raw, rsn)
+    if not data:
+        return set()
+    names = {'Kourend': 'Kourend & Kebos', 'Lumbridge': 'Lumbridge & Draynor',
+             'Western': 'Western Provinces'}
+    return {
+        names.get(region, region).lower().replace(' ', '_').replace('&', 'and') + ':' + tier
+        for region, tiers in data['regions'].items() for tier, values in tiers.items()
+        if values['consistent'] and values['total'] > 0
+        and values['count'] == values['total']
+        and all(task['completed'] is True for task in values['tasks'])
+    }

@@ -4,7 +4,7 @@ A personal-beta Python/PySide6 desktop command center for Old School RuneScape g
 
 ## Windows download and setup
 
-Download **osrs-goal-generator-windows-x64-beta4.zip** from the [Beta 4 release](https://github.com/Jayeh-Code/osrs-goal-generator/releases/tag/v4.0.0-beta.4), extract the whole ZIP, and open **OSRS Goal Generator.exe**. Keep the `_internal` folder beside the executable. No Python installation is needed. This beta executable is unsigned.
+Download **osrs-goal-generator-windows-x64-beta5.zip** from the [Beta 5 release](https://github.com/Jayeh-Code/osrs-goal-generator/releases/tag/v4.0.0-beta.5), extract the whole ZIP, and open **OSRS Goal Generator.exe**. Keep the `_internal` folder beside the executable. No Python installation is needed. This beta executable is unsigned.
 
 Close the older app first. On first launch, choose **Yes** to import and select `desktop_app/user_data/state.json` from the old source download. The old save stays intact. Future downloads reuse `%LOCALAPPDATA%\OSRSGoalGenerator\user_data`, so replacing the app folder does not remove your progress. The imported original and previous readable save are backed up there. See [setup and recovery instructions](packaging/windows/START%20HERE.txt).
 
@@ -24,7 +24,7 @@ The desktop remains the command center. RuneLite only observes supported game st
 
 ## Tests and status
 
-Run **Run Tests.cmd** after setup. The standalone desktop suite contains 169 tests; four legacy companion-source contract checks are skipped when the companion source is absent. The companion has its own Java regression suite. Offscreen GUI tests use temporary saves.
+Run **Run Tests.cmd** after setup. The standalone desktop suite contains 171 tests; four legacy companion-source contract checks are skipped when the companion source is absent. The companion has its own Java regression suite. Offscreen GUI tests use temporary saves.
 
 Validated on Windows: development companion launch, live skill XP, Collection Log page capture and restart persistence, skill goal completion, and observed collection-item goal completion. This is alpha software and is not an official Jagex or RuneLite product.
 

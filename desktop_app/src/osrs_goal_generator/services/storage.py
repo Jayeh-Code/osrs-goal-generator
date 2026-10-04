@@ -507,7 +507,13 @@ class StateStore:
 
     def completed_diaries(self, state: dict[str, Any], profile: PlayerProfile) -> set[str]:
         entry = self.ensure_profile_entry(state, profile.rsn, profile.account_type)
-        return {str(value) for value in entry.setdefault("completed_diaries", []) if value}
+        return ({str(value) for value in entry.setdefault("completed_diaries", []) if value}
+                | self.observed_completed_diaries(state, profile))
+
+    def observed_completed_diaries(self, state: dict[str, Any], profile: PlayerProfile) -> set[str]:
+        from .diary_sync import completed_ids
+        entry = self.ensure_profile_entry(state, profile.rsn, profile.account_type)
+        return completed_ids(entry.get("diary_prototype_snapshot"), profile.rsn)
 
     def mark_diary_complete(
         self,
