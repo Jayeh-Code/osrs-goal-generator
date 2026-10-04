@@ -7,3 +7,7 @@ Validation: 15 Java tests and 169 desktop tests. Extract the complete Windows ZI
 
 User journal spot-check confirmed Karamja Elite on 2026-10-04: fire/infernal cape, palm tree health and calquat tree health complete; crafting 56 nature runes and creating antivenom incomplete. All five task identities agree. This does not verify every other region or reward-claim behavior.
 
+
+
+Beta 4 follow-up: the user confirmed Karamja Elite displays LIVE 3/5 in the released desktop app. An isolated GUI integration check saved the observed all-region snapshot, recreated the window from disk with the bridge simulated unavailable, and verified CACHED task rows and exact counts for all 48 tiers. Switching to an unobserved account cleared the table. This checks application persistence and offline handling; it is not an actual RuneLite logout or OS process restart test. Personal saves were untouched. Next live validation: a new non-Ardougne task completion must update the released desktop checklist without manual refresh.
+
