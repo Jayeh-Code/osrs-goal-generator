@@ -7,9 +7,11 @@ from datetime import datetime
 from pathlib import Path
 
 from PySide6.QtCore import QObject, QThread, Qt, Signal, QSize, QTimer
-from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtGui import QIcon, QPixmap, QFontDatabase
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QBoxLayout,
+    QSizePolicy,
     QComboBox,
     QDialog,
     QFrame,
@@ -50,6 +52,7 @@ from ..services.wiki_assets import WikiAssetService
 from .path_dialog import CustomPathDialog
 from .collection_dialog import CollectionTargetDialog
 from .theme import APP_STYLESHEET
+from .scenic_frame import ScenicFrame
 
 
 class FetchWorker(QObject):
@@ -101,8 +104,8 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(f"{APP_NAME} - {VERSION}")
-        self.resize(1500, 920)
-        self.setMinimumSize(1180, 760)
+        self.resize(1440, 900)
+        self.setMinimumSize(1000, 680)
         self.setStyleSheet(APP_STYLESHEET)
 
         self.store = StateStore()
@@ -169,6 +172,13 @@ class MainWindow(QMainWindow):
         layout.addWidget(sidebar)
         layout.addWidget(content, 1)
         self.setCentralWidget(root)
+        # Use the decorative face only if installed; otherwise keep Qt's safe default.
+        if "Georgia" in QFontDatabase.families():
+            for label in self.findChildren(QLabel):
+                if label.objectName() in {"Brand", "HeroHeading", "SectionTitle"}:
+                    font = label.font()
+                    font.setFamily("Georgia")
+                    label.setFont(font)
 
         self._restore_last_account()
         self._render_topbar()
@@ -188,20 +198,21 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _build_sidebar(self) -> QWidget:
-        frame = QFrame()
+        frame = ScenicFrame(0.78)
         frame.setObjectName("Sidebar")
-        frame.setFixedWidth(205)
+        frame.setFixedWidth(190)
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(16, 20, 16, 18)
         layout.setSpacing(4)
 
-        brand = QLabel("OSRS GOAL\nGENERATOR")
+        brand = QLabel("OSRS\nGOAL\nGENERATOR")
+        brand.setAlignment(Qt.AlignmentFlag.AlignCenter)
         brand.setObjectName("Brand")
         layout.addWidget(brand)
         tagline = QLabel("SAME GAME. A CLEARER PATH.")
         tagline.setObjectName("BrandSub")
         layout.addWidget(tagline)
-        layout.addSpacing(22)
+        layout.addSpacing(14)
 
         entries = [
             ("Home", "Home"),
@@ -214,9 +225,16 @@ class MainWindow(QMainWindow):
             ("Settings", "Settings"),
         ]
         self.nav_buttons: list[QPushButton] = []
+        nav_assets = ["Account Management.png", "Attack style tab.png", "Skills icon.png", "Clue scroll.png", "Collection log icon.png", "XP drops icon.png", "Account Management - View History icon.png", "Coins 10000.png"]
+        from ..config import ASSETS_DIR
         for index, (display, label) in enumerate(entries):
             button = QPushButton(display)
             button.setObjectName("NavButton")
+            icon_path = ASSETS_DIR / "cache" / nav_assets[index]
+            button.setIcon(QIcon(str(icon_path)))
+            button.setIconSize(QSize(24, 24))
+            button.setToolTip(f"{display} (Alt+{index + 1})")
+            button.setShortcut(f"Alt+{index + 1}")
             button.setCheckable(True)
             button.setProperty("pageName", label)
             button.clicked.connect(lambda checked=False, i=index: self._switch_page(i))
@@ -235,7 +253,7 @@ class MainWindow(QMainWindow):
         return frame
 
     def _build_topbar(self) -> QWidget:
-        bar = QFrame()
+        bar = ScenicFrame(0.72)
         bar.setObjectName("TopBar")
         bar.setFixedHeight(66)
         layout = QHBoxLayout(bar)
@@ -306,6 +324,14 @@ class MainWindow(QMainWindow):
         self.top_status_label.style().unpolish(self.top_status_label)
         self.top_status_label.style().polish(self.top_status_label)
 
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        if hasattr(self, "home_main_layout"):
+            compact = self.width() < 1280
+            direction = QBoxLayout.Direction.TopToBottom if compact else QBoxLayout.Direction.LeftToRight
+            self.home_main_layout.setDirection(direction)
+            self.home_bottom_layout.setDirection(direction)
+
     def _switch_page(self, index: int) -> None:
         self.pages.setCurrentIndex(index)
         for i, button in enumerate(self.nav_buttons):
@@ -360,6 +386,7 @@ class MainWindow(QMainWindow):
         self.rsn_input = QLineEdit()
         self.rsn_input.setPlaceholderText("RuneScape name")
         self.rsn_input.setMaximumWidth(240)
+        self.rsn_input.returnPressed.connect(self._load_account)
         self.account_type = QComboBox()
         self.account_type.setMaximumWidth(180)
         for key, label in ACCOUNT_LABELS.items():
@@ -374,16 +401,19 @@ class MainWindow(QMainWindow):
         lookup_row.addStretch(1)
         hint = QLabel("Public HiScores | local progression history")
         hint.setObjectName("Muted")
+        hint.setWordWrap(True)
+        hint.setMinimumWidth(0)
         lookup_row.addWidget(hint)
         outer.addWidget(lookup)
 
         main_row = QHBoxLayout()
+        self.home_main_layout = main_row
         main_row.setSpacing(12)
 
         # ------------------------------------------------------------------
         # Hero / Goal command center - intentionally dominant like mockup.
         # ------------------------------------------------------------------
-        hero = QFrame()
+        hero = ScenicFrame(0.46)
         hero.setObjectName("DashboardHero")
         hero_layout = QVBoxLayout(hero)
         hero_layout.setContentsMargins(24, 20, 24, 20)
@@ -393,13 +423,16 @@ class MainWindow(QMainWindow):
         hero_text = QVBoxLayout()
         hero_text.setSpacing(1)
         hero_title = QLabel("What should you do today?")
+        self.hero_heading = hero_title
+        hero_title.setWordWrap(True)
         hero_title.setObjectName("HeroHeading")
         hero_sub = QLabel("Let the goal generator find your next useful adventure.")
+        self.hero_subtitle = hero_sub
+        hero_sub.setWordWrap(True)
         hero_sub.setObjectName("HeroSub")
         hero_text.addWidget(hero_title)
         hero_text.addWidget(hero_sub)
-        hero_head.addLayout(hero_text)
-        hero_head.addStretch(1)
+        hero_head.addLayout(hero_text, 1)
         self.goal_mode_label = QLabel("READY")
         self.goal_mode_label.setObjectName("GoldPill")
         hero_head.addWidget(self.goal_mode_label, 0, Qt.AlignmentFlag.AlignTop)
@@ -407,11 +440,14 @@ class MainWindow(QMainWindow):
 
         self.generate_button = QPushButton("GENERATE GOAL")
         self.generate_button.setObjectName("HeroGenerate")
-        self.generate_button.setMinimumHeight(72)
+        self.generate_button.setMinimumHeight(64)
+        self.generate_button.setShortcut("Ctrl+G")
+        self.generate_button.setToolTip("Generate a goal (Ctrl+G)")
         self.generate_button.clicked.connect(self._generate_goal)
         hero_layout.addWidget(self.generate_button)
 
         filter_panel = QFrame()
+        self.home_filter_panel = filter_panel
         filter_panel.setObjectName("HeroControls")
         filter_grid = QGridLayout(filter_panel)
         filter_grid.setContentsMargins(14, 10, 14, 10)
@@ -449,6 +485,7 @@ class MainWindow(QMainWindow):
         # Generated/active goal card lives inside the hero instead of in a
         # separate Generate tab.
         goal_panel = QFrame()
+        self.home_goal_panel = goal_panel
         goal_panel.setObjectName("GoalPanel")
         goal_panel_layout = QVBoxLayout(goal_panel)
         goal_panel_layout.setContentsMargins(14, 12, 14, 12)
@@ -465,6 +502,7 @@ class MainWindow(QMainWindow):
         goal_copy.setSpacing(3)
         self.goal_title = QLabel("No goal generated yet")
         self.goal_title.setObjectName("GoalTitle")
+        self.goal_title.setWordWrap(True)
         self.goal_objective = QLabel("Load an account, choose your focus, then generate a goal.")
         self.goal_objective.setWordWrap(True)
         self.home_active_progress = QProgressBar()
@@ -473,6 +511,7 @@ class MainWindow(QMainWindow):
         self.home_active_progress.setVisible(False)
         self.home_active_status = QLabel("")
         self.home_active_status.setObjectName("Muted")
+        self.home_active_status.setWordWrap(True)
         goal_copy.addWidget(self.goal_title)
         goal_copy.addWidget(self.goal_objective)
         goal_copy.addWidget(self.home_active_progress)
@@ -597,8 +636,9 @@ class MainWindow(QMainWindow):
         skill_title.setObjectName("SectionTitle")
         skill_head.addWidget(skill_title)
         skill_head.addStretch(1)
-        lowest_hint = QLabel("live HiScores")
-        lowest_hint.setObjectName("Muted")
+        lowest_hint = QPushButton("View stats  ")
+        lowest_hint.clicked.connect(lambda: self._switch_page(5))
+        lowest_hint.setObjectName("LinkButton")
         skill_head.addWidget(lowest_hint)
         skill_layout.addLayout(skill_head)
         # Keep these rows alive for the life of the window.  Earlier alphas
@@ -657,6 +697,7 @@ class MainWindow(QMainWindow):
         # playstyle insights.
         # ------------------------------------------------------------------
         bottom = QHBoxLayout()
+        self.home_bottom_layout = bottom
         bottom.setSpacing(12)
 
         path_card = QFrame()
@@ -1599,6 +1640,12 @@ class MainWindow(QMainWindow):
         active = self.store.active_goal(self.state, profile) if profile else None
 
         has_account = profile is not None
+        busy = active is not None
+        self.generate_button.setVisible(not busy)
+        self.home_filter_panel.setVisible(not busy)
+        self.home_goal_panel.setVisible(busy or self.session.current_goal is not None)
+        self.hero_heading.setText("Your next adventure" if busy else "What should you do today?")
+        self.hero_subtitle.setText("One goal. Clear progress. Keep going." if busy else "Choose your focus, then find your next useful adventure.")
         controls = [self.category_combo, self.difficulty_combo, self.session_combo]
 
         if active is not None and profile is not None:
@@ -1609,6 +1656,7 @@ class MainWindow(QMainWindow):
             self.goal_objective.setText(active.objective)
             self.goal_reasons.setText("\n".join(f" |  {reason}" for reason in active.reasons) or " |  Accepted task")
             self.goal_bonus.setText(f"BONUS\n{active.bonus}" if active.bonus else "")
+            self.goal_bonus.setVisible(bool(active.bonus))
             self.goal_score_hint.setText(
                 f"{active.category.title()}  |  {active.metadata.get('difficulty', '').title()}  |  "
                 f"{active.estimated_minutes or '-'} min"
@@ -1669,6 +1717,7 @@ class MainWindow(QMainWindow):
         self.goal_objective.setText(goal.objective)
         self.goal_reasons.setText("\n".join(f" |  {reason}" for reason in goal.reasons))
         self.goal_bonus.setText(f"BONUS\n{goal.bonus}" if goal.bonus else "")
+        self.goal_bonus.setVisible(bool(goal.bonus))
         self.goal_score_hint.setText(
             f"Recommendation score: {goal.score:.0f}  |  {goal.category.title()}  |  "
             f"{goal.metadata.get('difficulty', '').title()}  |  {goal.estimated_minutes or '-'} min"

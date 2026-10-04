@@ -326,3 +326,27 @@ QDialogButtonBox QPushButton {
     padding: 8px 12px;
 }
 """
+
+
+# Reference-inspired stone frames, warm serif headings, and clean panel surfaces.
+APP_STYLESHEET += r"""
+QLabel { background: transparent; }
+QLabel#Brand { font-size: 22px; color: #f2d99c; }
+QLabel#HeroHeading { font-size: 29px; color: #fff0cd; }
+QLabel#SectionTitle { font-size: 18px; color: #f4e5c5; }
+QLabel#HeroSub { color: #e1e7e4; }
+QFrame#DashboardCard, QFrame#Card {
+    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #102027,stop:1 #09161d);
+    border: 3px ridge #495253; border-radius: 7px;
+}
+QFrame#GoalPanel { background: rgba(5,17,23,235); border: 1px solid #6d7769; }
+QFrame#HeroControls { background: rgba(5,17,23,225); }
+QPushButton#HeroGenerate { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #23ac54,stop:1 #106c39); border: 2px solid #55cf71; font-size: 25px; }
+QPushButton#HeroGenerate:hover { background: #24a95a; border-color: #b4edac; }
+QPushButton#HeroGenerate:disabled { background: #284439; color: #a4b7a9; border-color: #426751; }
+QPushButton#NavButton { padding: 10px 9px; font-size: 14px; }
+QPushButton#NavButton:checked { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #215e86,stop:1 #12394e); border-left: 3px solid #69d29a; }
+QPushButton:focus { border: 1px solid #e9c978; }
+QProgressBar { min-height: 15px; border-radius: 7px; background: #243943; }
+QProgressBar::chunk { background: #4abc85; border-radius: 6px; }
+"""

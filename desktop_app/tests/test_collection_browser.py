@@ -54,6 +54,32 @@ class CollectionBrowserTests(unittest.TestCase):
     def write(self):
         self.path.write_text(json.dumps(self.raw),encoding="utf-8")
 
+    def test_home_compact_layout_has_no_horizontal_scroll(self):
+        from PySide6.QtWidgets import QBoxLayout
+        self.window._switch_page(0)
+        self.window.show()
+        self.window.resize(1100, 760)
+        self.app.processEvents()
+        self.assertEqual(self.window.home_main_layout.direction(), QBoxLayout.Direction.TopToBottom)
+        self.assertEqual(self.window.home_page.horizontalScrollBar().maximum(), 0)
+        self.window.resize(1440, 900)
+        self.app.processEvents()
+        self.assertEqual(self.window.home_main_layout.direction(), QBoxLayout.Direction.LeftToRight)
+
+    def test_active_goal_hides_generation_controls_and_restores_them_after_archive(self):
+        profile = self.window.session.profile
+        goal = self.window.progress_service.collection_goal(profile, self.window.runelite_snapshot, 'Alpha')
+        goal.status = 'accepted'
+        self.store.set_active_goal(self.window.state, profile, goal)
+        self.window._render_goal_panel()
+        self.assertTrue(self.window.generate_button.isHidden())
+        self.assertTrue(self.window.home_filter_panel.isHidden())
+        self.assertFalse(self.window.home_goal_panel.isHidden())
+        self.store.archive_active_goal(self.window.state, profile, 'cancelled')
+        self.window._render_goal_panel()
+        self.assertFalse(self.window.generate_button.isHidden())
+        self.assertFalse(self.window.home_filter_panel.isHidden())
+
     def test_status_banner_and_open_settings_follow_disconnect_and_reconnect(self):
         self.window._switch_page(7)
         self.assertEqual(self.window.runelite_bridge_status.text(), "RUNELITE LIVE")
