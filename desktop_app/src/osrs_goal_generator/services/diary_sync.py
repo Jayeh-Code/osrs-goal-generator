@@ -1,13 +1,18 @@
 """Read the isolated Ardougne prototype; never change manual completion."""
 import json
+from functools import lru_cache
 from datetime import datetime, timezone
 from pathlib import Path
 from ..config import ASSETS_DIR
 
 PROTOTYPE_PATH = Path.home()/'.runelite/plugin-data/osrs-diary-prototype/diary-prototype.json'
 
+@lru_cache(maxsize=2)
+def _mapping(filename):
+    return json.loads((ASSETS_DIR/filename).read_text(encoding='utf-8'))
 
-def validate(raw, rsn):
+
+def _validate_region(raw, rsn, region="Ardougne"):
     if not isinstance(raw, dict) or type(raw.get('prototype_schema')) is not int or raw['prototype_schema'] != 1:
         return None
     if raw.get('mapping_version') != 'ardougne-tasks-1' or raw.get('status') != 'observed_unverified':
@@ -18,14 +23,21 @@ def validate(raw, rsn):
         timestamp = datetime.fromisoformat(raw['updated_at'].replace('Z', '+00:00'))
         if timestamp.tzinfo is None:
             return None
-        mapping = json.loads((ASSETS_DIR/'ardougne-task-mapping.json').read_text(encoding='utf-8'))
-        tiers = raw['tiers']
+        extended = raw.get('regions_mapping_version') == 'all-diaries-1'
+        if extended:
+            mapping = [r for r in _mapping('diary-task-mapping.json') if r['region'] == region]
+            if not mapping: return None
+            tiers = raw['regions'][region]
+        else:
+            if region != 'Ardougne': return None
+            mapping = _mapping('ardougne-task-mapping.json')
+            tiers = raw['tiers']
         result = {}
         for tier in ('easy', 'medium', 'hard', 'elite'):
             definitions = [r for r in mapping if r['tier'] == tier]
             observed = tiers[tier]
             tasks = observed['tasks']
-            expected = {f"ardougne:{tier}:{r['varp']}:{r['bit']}":r for r in definitions}
+            expected = {(r["id"] if extended else f"ardougne:{tier}:{r['varp']}:{r['bit']}"):r for r in definitions}
             if len(tasks) != len(expected) or {t['id'] for t in tasks} != set(expected):
                 return None
             if any(type(t['bit_set']) is not bool for t in tasks):
@@ -39,6 +51,17 @@ def validate(raw, rsn):
         return {'observed_at':raw['updated_at'], 'tiers':result}
     except (KeyError, TypeError, ValueError, OSError, AttributeError):
         return None
+
+
+REGIONS = ('Ardougne','Desert','Falador','Fremennik','Kandarin','Karamja','Kourend','Lumbridge','Morytania','Varrock','Western','Wilderness')
+
+def validate(raw, rsn):
+    regions = {}
+    for region in REGIONS:
+        data = _validate_region(raw, rsn, region)
+        if data: regions[region] = data['tiers']
+    if not regions: return None
+    return {'observed_at':raw['updated_at'], 'regions':regions, 'tiers':regions.get('Ardougne', {})}
 
 
 def load(rsn, path=PROTOTYPE_PATH):

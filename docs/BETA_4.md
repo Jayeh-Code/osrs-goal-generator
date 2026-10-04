@@ -1,0 +1,5 @@
+Experimental diary checklist now supports all 12 regions and 492 mapped tasks, with independent tier-count consistency checks. Karamja multi-action task counters use their required thresholds; partial counters are not completion. Added region selection, retained old Ardougne-only snapshot compatibility, per-profile caching, live/cached labels, and unknown states for inconsistent counts.
+
+Requires the updated separate OSRS Diary Prototype client. Restart it using Start Diary Prototype.cmd. The companion submitted to Plugin Hub and desktop manual completions/active goals are unchanged. Live all-region snapshot on 2026-10-04T23:05:25.634766600Z: the desktop reader accepted all 12 regions, all 48 tier decoded totals matched independent game counters, and freshness passed. Individual task identity outside the previously confirmed Ardougne sample remains pending journal spot-checks. Upstream task mappings are pinned and attributed; all-region support is experimental, not a claim of every task being verified in-game.
+
+Validation: 15 Java tests and 169 desktop tests. Extract the complete Windows ZIP after closing the old app. Existing saves are reused.

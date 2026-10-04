@@ -15,6 +15,24 @@ def sample():
     return {'prototype_schema':1,'mapping_version':'ardougne-tasks-1','status':'observed_unverified','player_name':'Test Player','updated_at':datetime.now(timezone.utc).isoformat(),'tiers':tiers}
 
 class DiarySyncTests(unittest.TestCase):
+    def test_all_regions_and_legacy_compatibility(self):
+        raw=sample()
+        mapping=json.loads((ASSETS_DIR/'diary-task-mapping.json').read_text())
+        raw['regions_mapping_version']='all-diaries-1';raw['regions']={}
+        for region in diary_sync.REGIONS:
+            raw['regions'][region]={}
+            for tier in ('easy','medium','hard','elite'):
+                tasks=[{'id':r['id'],'bit_set':False} for r in mapping if r['region']==region and r['tier']==tier]
+                raw['regions'][region][tier]={'tasks':tasks,'count_raw':0,'mapping_status':'count_matched_pending_journal_check'}
+        data=diary_sync.validate(raw,'Test Player')
+        self.assertEqual(len(data['regions']),12)
+        self.assertEqual(sum(t['total'] for r in data['regions'].values() for t in r.values()),492)
+        raw['regions']['Karamja']['easy']['count_raw']=1
+        data=diary_sync.validate(raw,'Test Player')
+        self.assertFalse(data['regions']['Karamja']['easy']['consistent'])
+        self.assertTrue(data['regions']['Varrock']['easy']['consistent'])
+        self.assertEqual(set(diary_sync.validate(sample(),'Test Player')['regions']),{'Ardougne'})
+
     def test_exact_tasks_and_account_guard(self):
         raw=sample()
         data=diary_sync.validate(raw,'Test Player')

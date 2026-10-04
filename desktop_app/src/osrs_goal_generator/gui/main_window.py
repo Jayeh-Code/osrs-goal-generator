@@ -998,9 +998,15 @@ class MainWindow(QMainWindow):
         checklist = QFrame()
         checklist.setObjectName("Card")
         checklist_layout = QVBoxLayout(checklist)
-        self.diary_live_note = QLabel("Ardougne checklist - requires the separate diary prototype.")
+        self.diary_live_note = QLabel("Diary checklist - requires the separate diary prototype.")
         self.diary_live_note.setWordWrap(True)
         checklist_layout.addWidget(self.diary_live_note)
+        self.diary_live_region = QComboBox()
+        for region in diary_sync.REGIONS:
+            label = {"Kourend":"Kourend & Kebos", "Lumbridge":"Lumbridge & Draynor", "Western":"Western Provinces"}.get(region,region)
+            self.diary_live_region.addItem(label,region)
+        self.diary_live_region.currentIndexChanged.connect(lambda _: self._render_diary_checklist())
+        checklist_layout.addWidget(self.diary_live_region)
         self.diary_live_tier = QComboBox()
         self.diary_live_tier.addItems(["Easy", "Medium", "Hard", "Elite"])
         self.diary_live_tier.setCurrentText("Elite")
@@ -2307,7 +2313,7 @@ class MainWindow(QMainWindow):
             if raw and live:
                 self.diary_observed = diary_sync.validate(raw, profile.rsn)
                 self.diary_observed_live = True
-                if not isinstance(cached, dict) or cached.get("tiers") != raw.get("tiers"):
+                if not isinstance(cached, dict) or (cached.get("tiers"), cached.get("regions")) != (raw.get("tiers"), raw.get("regions")):
                     entry["diary_prototype_snapshot"] = raw
                     self._save_state()
             else:
@@ -2330,12 +2336,17 @@ class MainWindow(QMainWindow):
         else:
             data, live = None, False
         if not data:
-            self.diary_live_note.setText("Ardougne checklist (experimental): no matching observed data. Enable OSRS Diary Prototype on this account. Manual readiness remains below.")
+            self.diary_live_note.setText("Diary checklist (experimental): no matching observed data. Enable OSRS Diary Prototype on this account. Manual readiness remains below.")
             return
-        tier = data['tiers'][self.diary_live_tier.currentText().lower()]
+        region = self.diary_live_region.currentData()
+        if region not in data['regions']:
+            self.diary_live_note.setText("No verified-format data for this region. Restart the updated diary prototype. Older Ardougne data remains available under Ardougne.")
+            return
+        tier = data['regions'][region][self.diary_live_tier.currentText().lower()]
+        self.diary_task_table.setHorizontalHeaderLabels(["State", self.diary_live_region.currentText() + " task"])
         status = "LIVE" if live else "CACHED"
         count = str(tier['count']) if tier['consistent'] else "Unknown"
-        self.diary_live_note.setText(f"Ardougne checklist (experimental) - {status} - {count}/{tier['total']} tasks. Observed: {data['observed_at']}. "
+        self.diary_live_note.setText(f"{self.diary_live_region.currentText()} checklist (experimental) - {status} - {count}/{tier['total']} tasks. Observed: {data['observed_at']}. "
                                     "Read-only; manual diary completion is unchanged.")
         for index, task in enumerate(tier['tasks']):
             self.diary_task_table.insertRow(index)
