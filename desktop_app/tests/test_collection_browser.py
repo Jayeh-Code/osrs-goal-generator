@@ -54,6 +54,25 @@ class CollectionBrowserTests(unittest.TestCase):
     def write(self):
         self.path.write_text(json.dumps(self.raw),encoding="utf-8")
 
+    def test_diary_checklist_persists_and_never_changes_manual_completion(self):
+        from test_diary_sync import sample
+        from osrs_goal_generator.services import diary_sync
+        raw=sample();w=self.window
+        with patch.object(diary_sync,'load',return_value=(raw,True)):
+            w._poll_diary_checklist();w._render_diary_checklist()
+            self.assertIn('LIVE',w.diary_live_note.text())
+            self.assertEqual(w.diary_task_table.rowCount(),8)
+            self.assertEqual(sum(w.diary_task_table.item(i,0).text()=='Complete' for i in range(8)),2)
+        w.state=self.store.load()
+        with patch.object(diary_sync,'load',return_value=(None,False)):
+            w._poll_diary_checklist();w._render_diary_checklist()
+            self.assertIn('CACHED',w.diary_live_note.text())
+            self.assertEqual(w.diary_task_table.rowCount(),8)
+            self.assertEqual(self.store.completed_diaries(w.state,w.session.profile),set())
+            w.session.profile.rsn='Another account'
+            w._poll_diary_checklist();w._render_diary_checklist()
+            self.assertEqual(w.diary_task_table.rowCount(),0)
+
     def test_diary_loading_does_not_block_ui_and_failure_can_retry(self):
         import threading
         import time

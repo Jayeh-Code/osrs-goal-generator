@@ -42,6 +42,7 @@ from ..models import DiaryDefinition, Goal, GoalFilters, PathDefinition, PlayerP
 from ..services.analytics import AnalyticsService
 from ..services.bridge_status import bridge_status
 from ..services.collection_categories import CATEGORIES, collection_page_category
+from ..services import diary_sync
 from ..services.diaries import DiaryDataError, DiaryDataService
 from ..services.hiscores import HiscoresClient, HiscoresError
 from ..services.progress import GoalProgressService, compare_profiles
@@ -143,6 +144,8 @@ class MainWindow(QMainWindow):
         self.diary_loading = False
         self.diary_attempted = False
         self.last_live_update = None
+        self.diary_observed = None
+        self.diary_observed_live = False
         self.asset_service = WikiAssetService()
         self.runelite_sync_service = RuneLiteSyncService()
         self.runelite_snapshot: RuneLiteSyncSnapshot | None = None
@@ -992,6 +995,26 @@ class MainWindow(QMainWindow):
         self.diary_note.setWordWrap(True)
         layout.addWidget(self.diary_note)
 
+        checklist = QFrame()
+        checklist.setObjectName("Card")
+        checklist_layout = QVBoxLayout(checklist)
+        self.diary_live_note = QLabel("Ardougne checklist - requires the separate diary prototype.")
+        self.diary_live_note.setWordWrap(True)
+        checklist_layout.addWidget(self.diary_live_note)
+        self.diary_live_tier = QComboBox()
+        self.diary_live_tier.addItems(["Easy", "Medium", "Hard", "Elite"])
+        self.diary_live_tier.setCurrentText("Elite")
+        self.diary_live_tier.currentTextChanged.connect(lambda _: self._render_diary_checklist())
+        checklist_layout.addWidget(self.diary_live_tier)
+        self.diary_task_table = QTableWidget(0, 2)
+        self.diary_task_table.setHorizontalHeaderLabels(["State", "Ardougne task"])
+        self.diary_task_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.diary_task_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.diary_task_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.diary_task_table.setMaximumHeight(245)
+        checklist_layout.addWidget(self.diary_task_table)
+        layout.addWidget(checklist)
+
         controls = QFrame()
         controls.setObjectName("TopStatStrip")
         controls_layout = QHBoxLayout(controls)
@@ -1361,6 +1384,7 @@ class MainWindow(QMainWindow):
     def _poll_runelite_sync(self) -> None:
         if self.closing:
             return
+        self._poll_diary_checklist()
         snapshot = self._refresh_runelite_snapshot()
         fingerprint = self.runelite_sync_service.fingerprint(snapshot)
         previous_fingerprint = self.runelite_fingerprint
@@ -2272,7 +2296,56 @@ class MainWindow(QMainWindow):
             self.diary_region_combo.blockSignals(False)
         return True
 
+    def _poll_diary_checklist(self):
+        profile = self.session.profile
+        self.diary_observed = None
+        self.diary_observed_live = False
+        if profile:
+            raw, live = diary_sync.load(profile.rsn)
+            entry = self.store.ensure_profile_entry(self.state, profile.rsn, profile.account_type)
+            cached = entry.get("diary_prototype_snapshot")
+            if raw and live:
+                self.diary_observed = diary_sync.validate(raw, profile.rsn)
+                self.diary_observed_live = True
+                if not isinstance(cached, dict) or cached.get("tiers") != raw.get("tiers"):
+                    entry["diary_prototype_snapshot"] = raw
+                    self._save_state()
+            else:
+                self.diary_observed = diary_sync.validate(cached, profile.rsn)
+        if self.pages.currentIndex() == 3:
+            self._render_diary_checklist()
+
+    def _render_diary_checklist(self):
+        if not hasattr(self, "diary_task_table"):
+            return
+        scroll_position = self.diary_task_table.verticalScrollBar().value()
+        self.diary_task_table.setRowCount(0)
+        data = getattr(self, "diary_observed", None)
+        profile = self.session.profile
+        # Account changes can render before the next bridge poll.
+        if profile:
+            raw, live = diary_sync.load(profile.rsn)
+            entry = self.store.ensure_profile_entry(self.state, profile.rsn, profile.account_type)
+            data = diary_sync.validate(raw if live else entry.get("diary_prototype_snapshot"), profile.rsn)
+        else:
+            data, live = None, False
+        if not data:
+            self.diary_live_note.setText("Ardougne checklist (experimental): no matching observed data. Enable OSRS Diary Prototype on this account. Manual readiness remains below.")
+            return
+        tier = data['tiers'][self.diary_live_tier.currentText().lower()]
+        status = "LIVE" if live else "CACHED"
+        count = str(tier['count']) if tier['consistent'] else "Unknown"
+        self.diary_live_note.setText(f"Ardougne checklist (experimental) - {status} - {count}/{tier['total']} tasks. Observed: {data['observed_at']}. "
+                                    "Read-only; manual diary completion is unchanged.")
+        for index, task in enumerate(tier['tasks']):
+            self.diary_task_table.insertRow(index)
+            label = "Complete" if task['completed'] is True else "Remaining" if task['completed'] is False else "Unknown"
+            self.diary_task_table.setItem(index, 0, QTableWidgetItem(label))
+            self.diary_task_table.setItem(index, 1, QTableWidgetItem(task['title']))
+        self.diary_task_table.verticalScrollBar().setValue(scroll_position)
+
     def _render_diaries(self) -> None:
+        self._render_diary_checklist()
         if not hasattr(self, "diary_cards_layout"):
             return
         self._clear_layout(self.diary_cards_layout)

@@ -1,0 +1,254 @@
+[
+  {
+    "tier": "easy",
+    "title": "Aleck's Hunter Emporium",
+    "varp": 1196,
+    "bit": 11
+  },
+  {
+    "tier": "easy",
+    "title": "Identify Sword",
+    "varp": 1196,
+    "bit": 7
+  },
+  {
+    "tier": "easy",
+    "title": "Fishing Trawler",
+    "varp": 1196,
+    "bit": 5
+  },
+  {
+    "tier": "easy",
+    "title": "Pet Insurance",
+    "varp": 1196,
+    "bit": 12
+  },
+  {
+    "tier": "easy",
+    "title": "Restore Prayer",
+    "varp": 1196,
+    "bit": 4
+  },
+  {
+    "tier": "easy",
+    "title": "Sell Silk",
+    "varp": 1196,
+    "bit": 2
+  },
+  {
+    "tier": "easy",
+    "title": "Steal Cake",
+    "varp": 1196,
+    "bit": 1
+  },
+  {
+    "tier": "easy",
+    "title": "Essence Mine",
+    "varp": 1196,
+    "bit": 0
+  },
+  {
+    "tier": "easy",
+    "title": "Combat Camp",
+    "varp": 1196,
+    "bit": 6
+  },
+  {
+    "tier": "easy",
+    "title": "Wilderness Lever",
+    "varp": 1196,
+    "bit": 9
+  },
+  {
+    "tier": "medium",
+    "title": "Fairy Ring to Unicorn Pen",
+    "varp": 1196,
+    "bit": 13
+  },
+  {
+    "tier": "medium",
+    "title": "Yanille Wall Grapple",
+    "varp": 1196,
+    "bit": 14
+  },
+  {
+    "tier": "medium",
+    "title": "Ardougne Strawberries",
+    "varp": 1196,
+    "bit": 15
+  },
+  {
+    "tier": "medium",
+    "title": "Teleport to Ardougne",
+    "varp": 1196,
+    "bit": 16
+  },
+  {
+    "tier": "medium",
+    "title": "Castle Wars Balloon",
+    "varp": 1196,
+    "bit": 17
+  },
+  {
+    "tier": "medium",
+    "title": "Claim Sand",
+    "varp": 1196,
+    "bit": 18
+  },
+  {
+    "tier": "medium",
+    "title": "Fishing Platform",
+    "varp": 1196,
+    "bit": 19
+  },
+  {
+    "tier": "medium",
+    "title": "Pickpocket Master Farmer",
+    "varp": 1196,
+    "bit": 20
+  },
+  {
+    "tier": "medium",
+    "title": "Cave Nightshade",
+    "varp": 1196,
+    "bit": 21
+  },
+  {
+    "tier": "medium",
+    "title": "Kill Swordchick",
+    "varp": 1196,
+    "bit": 23
+  },
+  {
+    "tier": "medium",
+    "title": "Iban Upgrade",
+    "varp": 1196,
+    "bit": 24
+  },
+  {
+    "tier": "medium",
+    "title": "Fairy Ring to Necromancer Tower",
+    "varp": 1196,
+    "bit": 25
+  },
+  {
+    "tier": "hard",
+    "title": "Recharge Jewelry",
+    "varp": 1196,
+    "bit": 26
+  },
+  {
+    "tier": "hard",
+    "title": "Magic Guild",
+    "varp": 1196,
+    "bit": 27
+  },
+  {
+    "tier": "hard",
+    "title": "Stealing from Ardougne Royalty",
+    "varp": 1196,
+    "bit": 28
+  },
+  {
+    "tier": "hard",
+    "title": "Monkey in a Cage",
+    "varp": 1196,
+    "bit": 29
+  },
+  {
+    "tier": "hard",
+    "title": "Teleport to Watchtower",
+    "varp": 1196,
+    "bit": 30
+  },
+  {
+    "tier": "hard",
+    "title": "Red Salamander",
+    "varp": 1196,
+    "bit": 31
+  },
+  {
+    "tier": "hard",
+    "title": "Tree Gnome Village Palm Tree",
+    "varp": 1197,
+    "bit": 0
+  },
+  {
+    "tier": "hard",
+    "title": "Monastery Poison Ivy",
+    "varp": 1197,
+    "bit": 1
+  },
+  {
+    "tier": "hard",
+    "title": "Mithril Platebody",
+    "varp": 1197,
+    "bit": 2
+  },
+  {
+    "tier": "hard",
+    "title": "Yanille POH",
+    "varp": 1197,
+    "bit": 3
+  },
+  {
+    "tier": "hard",
+    "title": "Smith Dragon Square in West Ardougne",
+    "varp": 1197,
+    "bit": 4
+  },
+  {
+    "tier": "hard",
+    "title": "Craft Death Runes",
+    "varp": 1197,
+    "bit": 5
+  },
+  {
+    "tier": "elite",
+    "title": "Fishing Trawler Manta Ray",
+    "varp": 1197,
+    "bit": 6
+  },
+  {
+    "tier": "elite",
+    "title": "Yanille Agility Dungeon",
+    "varp": 1197,
+    "bit": 7
+  },
+  {
+    "tier": "elite",
+    "title": "Pickpocket Hero",
+    "varp": 1197,
+    "bit": 9
+  },
+  {
+    "tier": "elite",
+    "title": "Rune Crossbow in Yanille / Witchaven",
+    "varp": 1197,
+    "bit": 8
+  },
+  {
+    "tier": "elite",
+    "title": "Imbued Salve Amulet",
+    "varp": 1197,
+    "bit": 10
+  },
+  {
+    "tier": "elite",
+    "title": "Ardougne Torstol",
+    "varp": 1197,
+    "bit": 11
+  },
+  {
+    "tier": "elite",
+    "title": "Ardougne Rooftop Agility",
+    "varp": 1197,
+    "bit": 12
+  },
+  {
+    "tier": "elite",
+    "title": "Ice Barrage in Castle Wars",
+    "varp": 1197,
+    "bit": 13
+  }
+]
