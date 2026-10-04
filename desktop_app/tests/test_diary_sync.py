@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from datetime import datetime, timezone
+from unittest.mock import patch
 from osrs_goal_generator.config import ASSETS_DIR
 from osrs_goal_generator.services import diary_sync
 
@@ -15,6 +16,28 @@ def sample():
     return {'prototype_schema':1,'mapping_version':'ardougne-tasks-1','status':'observed_unverified','player_name':'Test Player','updated_at':datetime.now(timezone.utc).isoformat(),'tiers':tiers}
 
 class DiarySyncTests(unittest.TestCase):
+    def test_integrated_bridge_precedence_and_lifecycle(self):
+        raw=json.loads((Path(__file__).parent/'fixtures/diary-integrated.json').read_text())
+        raw['updated_at']=datetime.now(timezone.utc).isoformat()
+        with tempfile.TemporaryDirectory() as folder:
+            bridge=Path(folder)/'sync.json'
+            with patch.object(diary_sync,'RUNELITE_SYNC_FILE',bridge), patch.object(diary_sync,'PROTOTYPE_PATH',Path(folder)/'prototype.json'):
+                diary_sync.PROTOTYPE_PATH.write_text(json.dumps(sample()))
+                bridge.write_text(json.dumps(raw))
+                observed,live=diary_sync.load('Test Player')
+                self.assertTrue(live)
+                self.assertEqual(len(diary_sync.validate(observed,'Test Player')['regions']),12)
+                self.assertEqual(diary_sync.load('Other'),(None,False))
+                for status in ('initializing','disconnected'):
+                    raw['diaries']['status']=status
+                    bridge.write_text(json.dumps(raw))
+                    self.assertEqual(diary_sync.load('Test Player'),(None,False))
+                raw['diaries']['status']='observed';raw['connected']=False
+                bridge.write_text(json.dumps(raw))
+                self.assertEqual(diary_sync.load('Test Player'),(None,False))
+                del raw['diaries'];bridge.write_text(json.dumps(raw))
+                self.assertTrue(diary_sync.load('Test Player')[1])
+
     def test_automatic_completion_ignores_rewards_and_rejects_mismatch(self):
         raw = sample()
         raw['tiers']['easy']['reward_raw'] = 0

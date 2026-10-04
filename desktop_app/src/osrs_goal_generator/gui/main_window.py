@@ -998,7 +998,7 @@ class MainWindow(QMainWindow):
         checklist = QFrame()
         checklist.setObjectName("Card")
         checklist_layout = QVBoxLayout(checklist)
-        self.diary_live_note = QLabel("Diary checklist - requires the separate diary prototype.")
+        self.diary_live_note = QLabel("Diary checklist - requires the updated RuneLite companion.")
         self.diary_live_note.setWordWrap(True)
         checklist_layout.addWidget(self.diary_live_note)
         self.diary_live_region = QComboBox()
@@ -2341,11 +2341,11 @@ class MainWindow(QMainWindow):
         else:
             data, live = None, False
         if not data:
-            self.diary_live_note.setText("Diary checklist (experimental): no matching observed data. Enable OSRS Diary Prototype on this account. Manual readiness remains below.")
+            self.diary_live_note.setText("Diary checklist (experimental): no matching observed data. Enable OSRS Goal Generator Companion on this account. Manual readiness remains below.")
             return
         region = self.diary_live_region.currentData()
         if region not in data['regions']:
-            self.diary_live_note.setText("No verified-format data for this region. Restart the updated diary prototype. Older Ardougne data remains available under Ardougne.")
+            self.diary_live_note.setText("No verified-format data for this region. Restart the updated RuneLite companion. Older Ardougne data remains available under Ardougne.")
             return
         tier = data['regions'][region][self.diary_live_tier.currentText().lower()]
         self.diary_task_table.setHorizontalHeaderLabels(["State", self.diary_live_region.currentText() + " task"])

@@ -3,13 +3,31 @@ import json
 from functools import lru_cache
 from datetime import datetime, timezone
 from pathlib import Path
-from ..config import ASSETS_DIR
+from ..config import ASSETS_DIR, RUNELITE_SYNC_FILE
 
 PROTOTYPE_PATH = Path.home()/'.runelite/plugin-data/osrs-diary-prototype/diary-prototype.json'
 
 @lru_cache(maxsize=2)
 def _mapping(filename):
     return json.loads((ASSETS_DIR/filename).read_text(encoding='utf-8'))
+
+
+def _normalize(raw):
+    if not isinstance(raw, dict) or 'diaries' not in raw:
+        return raw
+    diaries = raw.get('diaries')
+    player = raw.get('player')
+    if (type(raw.get('schema_version')) is not int or raw['schema_version'] != 1
+            or raw.get('connected') is not True or raw.get('game_state') != 'LOGGED_IN'
+            or not isinstance(diaries, dict) or not isinstance(player, dict)
+            or type(diaries.get('diary_schema')) is not int or diaries['diary_schema'] != 1
+            or diaries.get('mapping_version') != 'all-diaries-1'
+            or diaries.get('status') != 'observed'):
+        return None
+    return {'prototype_schema': 1, 'mapping_version': 'ardougne-tasks-1',
+            'regions_mapping_version': 'all-diaries-1', 'regions': diaries.get('regions'),
+            'status': 'observed_unverified', 'updated_at': raw.get('updated_at'),
+            'player_name': player.get('name')}
 
 
 def _validate_region(raw, rsn, region="Ardougne"):
@@ -56,6 +74,7 @@ def _validate_region(raw, rsn, region="Ardougne"):
 REGIONS = ('Ardougne','Desert','Falador','Fremennik','Kandarin','Karamja','Kourend','Lumbridge','Morytania','Varrock','Western','Wilderness')
 
 def validate(raw, rsn):
+    raw = _normalize(raw)
     regions = {}
     for region in REGIONS:
         data = _validate_region(raw, rsn, region)
@@ -64,11 +83,26 @@ def validate(raw, rsn):
     return {'observed_at':raw['updated_at'], 'regions':regions, 'tiers':regions.get('Ardougne', {})}
 
 
-def load(rsn, path=PROTOTYPE_PATH):
+def load(rsn, path=None):
+    # An integrated writer is authoritative even when disconnected or initializing.
+    # Fall back only when it does not advertise diary support.
+    if path is None:
+        try:
+            bridge = json.loads(RUNELITE_SYNC_FILE.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            bridge = None
+        if isinstance(bridge, dict) and 'diaries' in bridge:
+            return _loaded(bridge, rsn)
+        path = PROTOTYPE_PATH
     try:
         raw = json.loads(Path(path).read_text(encoding='utf-8'))
     except (OSError, ValueError):
         return None, False
+    return _loaded(raw, rsn)
+
+
+def _loaded(raw, rsn):
+    raw = _normalize(raw)
     result = validate(raw, rsn)
     if not result:
         return None, False

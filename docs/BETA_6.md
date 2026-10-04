@@ -1,0 +1,5 @@
+The main RuneLite companion now carries diary observations alongside skills and Collection Log in its existing local sync file. Desktop prefers this source and preserves compatible saved prototype observations. One companion replaces the separate diary prototype. All tasks completed still means diary complete, independent of rewards.
+
+Companion 0.2.0-beta.1 is required for integrated diaries; the pending Plugin Hub submission still points to the older companion. Use the local Start RuneLite Dev.cmd launcher after closing the prototype client. Existing Beta 5 cannot read the new diary section; update the desktop to Beta 6 as well. Existing saves are reused. Close the desktop before extracting the whole ZIP.
+
+Validation: 172 desktop tests and 11 combined-companion Java tests, including login initialization, account change, disconnect, source precedence, old-data compatibility, counters, and cache lifecycle. Combined-client in-game validation remains pending. Task mapping coverage remains experimental.

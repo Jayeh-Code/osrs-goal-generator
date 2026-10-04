@@ -107,3 +107,12 @@ For breaking changes:
 3. update Python reader;
 4. update tests/fixtures;
 5. document migration/fallback behavior.
+
+
+## Optional diary observations (companion 0.2.0)
+
+Schema v1 gains an optional `diaries` object. Existing fields remain unchanged and older readers can ignore this object. `diary_schema` is integer 1, `mapping_version` is `all-diaries-1`, and `status` is `initializing`, `observed`, or `disconnected`. `regions` is empty until three logged-in game ticks with a named player, and is cleared on disconnect. Capture uses supported client varp/varbit reads on the client thread. The existing atomic sync writer publishes the complete document.
+
+Observed `regions` maps the 12 internal region names to easy/medium/hard/elite. Each tier contains `count_raw`, `decoded_count`, `mapped_total`, `mapping_status`, and `tasks`. Tasks contain stable `id`, `title`, boolean `bit_set`, and diagnostic `state`. `mapping_status` is `count_matched_pending_journal_check` or `count_mismatch`. Mismatched tiers are unknown. The pinned task mapping and BSD attribution ship as resources. Counts matching is not proof of every task identity.
+
+The desktop requires a matching account, valid timestamp, connected LOGGED_IN state, supported schema/mapping, exact task IDs, boolean states, and matching task counts. All tasks complete means tier complete; no reward data is needed. It stores validated observations per profile for offline display. The old prototype is a fallback only when the main bridge has no diary section; an integrated disconnected/initializing writer takes precedence. Existing cached prototype observations remain compatible. Synthetic fixture: `desktop_app/tests/fixtures/diary-integrated.json`.
