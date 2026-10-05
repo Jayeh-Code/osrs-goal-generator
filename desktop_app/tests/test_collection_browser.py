@@ -54,6 +54,19 @@ class CollectionBrowserTests(unittest.TestCase):
     def write(self):
         self.path.write_text(json.dumps(self.raw),encoding="utf-8")
 
+    def test_live_boss_poll_completes_and_archives_goal(self):
+        from osrs_goal_generator.models import Goal
+        w=self.window
+        goal=Goal('boss-poll','2026-10-05','bossing','boss_kc','Vorkath','Vorkath','',[],start_value=347,target_value=348,status='accepted')
+        self.store.set_active_goal(w.state,w.session.profile,goal)
+        self.raw['boss_counts']={'Vorkath':348};self.write()
+        with patch.object(w,'_render_all'), patch('osrs_goal_generator.gui.main_window.QMessageBox.information'):
+            w._poll_runelite_sync()
+        self.assertEqual(w.session.profile.activity('Vorkath').score,348)
+        self.assertIsNone(self.store.active_goal(w.state,w.session.profile))
+        saved=self.store.load()
+        self.assertIsNone(self.store.active_goal(saved,w.session.profile))
+
     def test_diary_checklist_persists_and_never_changes_manual_completion(self):
         from test_diary_sync import sample
         from osrs_goal_generator.services import diary_sync

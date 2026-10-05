@@ -7,7 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from ..models import PlayerProfile, Skill
+from ..models import PlayerProfile, Skill, Activity
+from ..boss_rates import BOSS_RATES
 
 
 DEFAULT_RUNELITE_SYNC_PATH = (
@@ -54,6 +55,7 @@ class RuneLiteSyncSnapshot:
     total_level: int | None
     total_xp: int | None
     skills: dict[str, dict[str, int]] = field(default_factory=dict)
+    boss_counts: dict[str, int] = field(default_factory=dict)
     session: dict[str, Any] = field(default_factory=dict)
     collection_pages: dict[str, RuneLiteCollectionPage] = field(default_factory=dict)
     recent_collection_unlocks: tuple[str, ...] = ()
@@ -186,6 +188,9 @@ class RuneLiteSyncService:
             total_level=optional_int(player.get("total_level")),
             total_xp=optional_int(player.get("total_xp")),
             skills=skills,
+            boss_counts={name: count for name, count in
+                         (raw.get('boss_counts', {}) if isinstance(raw.get('boss_counts'), dict) else {}).items()
+                         if name in BOSS_RATES and type(count) is int and 0 <= count <= 2147483647},
             session=deepcopy(raw.get("session", {})) if isinstance(raw.get("session"), dict) else {},
             collection_pages=collection_pages,
             recent_collection_unlocks=tuple(str(item) for item in unlocks[:20]),
@@ -211,6 +216,7 @@ class RuneLiteSyncService:
             snapshot.connected,
             snapshot.player_name.casefold(),
             skill_values,
+            tuple(sorted(snapshot.boss_counts.items())),
             collection_values,
             snapshot.recent_collection_unlocks,
         )
@@ -219,8 +225,7 @@ class RuneLiteSyncService:
     def merge_profile(profile: PlayerProfile, snapshot: RuneLiteSyncSnapshot) -> PlayerProfile:
         """Return an in-memory profile with RuneLite skill/XP data overlaid.
 
-        Activity/boss values intentionally remain the HiScores values until a
-        RuneLite-backed activity source is implemented.  Ranks are also kept
+        Explicit live boss totals overlay lagging HiScores without reducing counts.  Ranks are also kept
         from HiScores because RuneLite does not know them locally.
         """
 
@@ -238,6 +243,13 @@ class RuneLiteSyncService:
             existing.level = int(live["level"])
             existing.xp = int(live["xp"])
 
+        if snapshot.is_fresh() and snapshot.matches(profile) and snapshot.game_state == 'LOGGED_IN':
+            for name, count in snapshot.boss_counts.items():
+                existing = merged.activity(name)
+                if existing is None:
+                    merged.activities[name] = Activity(name, -1, count)
+                else:
+                    existing.score = max(existing.score, count)
         overall = merged.overall
         if overall is not None:
             if snapshot.total_level is not None:

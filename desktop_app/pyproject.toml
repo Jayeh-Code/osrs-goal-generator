@@ -1,6 +1,6 @@
 [project]
 name = "osrs-goal-generator"
-version = "4.0.0b6"
+version = "4.0.0b7"
 description = "Account-aware Old School RuneScape goal and progression companion"
 requires-python = ">=3.11"
 dependencies = ["PySide6>=6.8,<7"]

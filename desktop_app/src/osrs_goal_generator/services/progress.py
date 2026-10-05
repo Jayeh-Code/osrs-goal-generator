@@ -58,6 +58,13 @@ class GoalProgressService:
                                     "Open this page in RuneLite to verify progress", "Waiting for RuneLite")
             current = sum(item.obtained for item in page.items if item.item_id in tracked)
             source = "RuneLite observed page"
+        elif goal.subtype == "boss_kc":
+            if live and goal.target_name in snapshot.boss_counts:
+                current = max(current or 0, snapshot.boss_counts[goal.target_name])
+                source = "RuneLite live"
+            if goal.current_value is not None and (current is None or goal.current_value > current or (not live and goal.current_value == current)):
+                current = goal.current_value
+                source = "Last verified progress"
         elif goal.subtype in {"skill_xp", "skill_level"}:
             if live and goal.target_name in snapshot.skills:
                 current = snapshot.skills[goal.target_name]["xp"]

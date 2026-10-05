@@ -1403,8 +1403,7 @@ class MainWindow(QMainWindow):
         if self.pages.currentIndex() == 7:
             self._render_settings()
         if live:
-            # Merge only live skill/XP values. Boss/activity values continue to
-            # come from HiScores in Alpha 8.
+            # Merge observed skill and boss totals; ranks remain from HiScores.
             merged = self.runelite_sync_service.merge_profile(profile, snapshot)
             self.session.profile = merged
             self.last_live_update = snapshot.updated_at
@@ -1412,6 +1411,7 @@ class MainWindow(QMainWindow):
             active = self.store.active_goal(self.state, merged)
             completed_goal = None
             if active and (active.subtype == "collection_slot" or
+                           (active.subtype == "boss_kc" and active.target_name in snapshot.boss_counts) or
                            (active.subtype in {"skill_xp", "skill_level"} and active.target_name in snapshot.skills)):
                 before = active.to_dict()
                 result = self.progress_service.apply(active, merged, snapshot)
